@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>翼をください · 個人空間</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Noto+Serif+JP:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- 入口遮罩（用于解锁音频自动播放） -->
+  <div class="enter-gate" id="enterGate">
+    <div class="gate-inner">
+      <p class="gate-jp">翼をください</p>
+      <h2 class="gate-title">推 开 这 扇 窗</h2>
+      <p class="gate-sub">这里有风，有云，<br />还有一首想与你分享的歌。</p>
+      <button class="gate-btn" id="enterBtn">
+        <span class="gate-btn-mark">♪</span>
+        <span class="gate-btn-text">进 入</span>
+      </button>
+      <p class="gate-tip">点击后将自动播放背景音乐</p>
+    </div>
+  </div>
+
+  <!-- 渐变天空背景 -->
+  <div class="sky-bg"></div>
+
+  <!-- 漂浮的云 -->
+  <div class="clouds">
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+    <div class="cloud cloud-4"></div>
+  </div>
+
+  <!-- 飘动的羽毛 -->
+  <div class="feathers" id="feathers"></div>
+
+  <!-- 顶部导航 -->
+  <nav class="nav">
+    <div class="nav-logo">
+      <span class="logo-mark">翼</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#hero">首页</a></li>
+      <li><a href="#about">关于</a></li>
+      <li><a href="#works">片羽</a></li>
+      <li><a href="#letter">信</a></li>
+    </ul>
+  </nav>
+
+  <!-- 英雄区 -->
+  <section class="hero" id="hero">
+    <div class="hero-inner">
+      <p class="hero-jp">翼をください</p>
+      <h1 class="hero-title">
+        <span class="title-line">愿有羽翼</span>
+        <span class="title-line title-line--alt">向往晴空</span>
+      </h1>
+      <p class="hero-sub">
+        この大空に　翼をひろげ<br />
+        飛んで行きたいよ
+      </p>
+      <div class="hero-meta">
+        <span class="meta-dot"></span>
+        <span>Personal Space — by 张容纲</span>
+        <span class="meta-dot"></span>
+      </div>
+      <div class="scroll-hint">
+        <span>向 下 滚 动</span>
+        <div class="scroll-line"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 关于 -->
+  <section class="section about" id="about">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <p class="section-eyebrow">About</p>
+      <h2 class="section-title">关 于 我</h2>
+    </div>
+
+    <div class="about-grid">
+      <div class="about-portrait">
+        <div class="portrait-frame">
+          <div class="portrait-circle"></div>
+          <div class="portrait-feather">𓆩</div>
+        </div>
+        <p class="portrait-caption">— 一个仍在追风的人 —</p>
+      </div>
+
+      <div class="about-text">
+        <p class="about-quote">"如果有翅膀，我愿先飞去无人知晓的清晨。"</p>
+        <p>
+          我叫 <strong>张容纲</strong>。喜欢清晨的薄云，喜欢林原惠美的歌声里那种透明的温柔，
+          也喜欢在代码与文字之间，慢慢搭建一个只属于自己的小世界。
+        </p>
+        <p>
+          这里收集着那些尚未飞远的念头——一些片段、一点声音、几行字。
+          愿你在这里也能听见风的形状。
+        </p>
+        <ul class="about-tags">
+          <li>少年心气</li>
+          <li>慢生活</li>
+          <li>City Walker</li>
+          <li>独立开发</li>
+          <li>读诗</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 作品 / 片羽 -->
+  <section class="section works" id="works">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <p class="section-eyebrow">Fragments</p>
+      <h2 class="section-title">散 落 的 片 羽</h2>
+    </div>
+
+    <div class="works-grid">
+      <article class="work-card" style="--delay:0s">
+        <div class="card-icon">⌘</div>
+        <h3>独立开发</h3>
+        <p>用代码做一些小而温柔的工具，让生活轻一点。</p>
+        <span class="card-tag">Code</span>
+      </article>
+
+      <article class="work-card" style="--delay:.1s">
+        <div class="card-icon">✎</div>
+        <h3>文字记录</h3>
+        <p>把日常折叠进句子里，留住那些会消散的瞬间。</p>
+        <span class="card-tag">Writing</span>
+      </article>
+
+      <article class="work-card" style="--delay:.2s">
+        <div class="card-icon">♪</div>
+        <h3>音乐收藏</h3>
+        <p>九十年代的 J-Pop、城市流行、清晨的钢琴。</p>
+        <span class="card-tag">Music</span>
+      </article>
+
+      <article class="work-card" style="--delay:.3s">
+        <div class="card-icon">✈</div>
+        <h3>城市漫游</h3>
+        <p>地图上一个未走过的街角，是周末最好的目的地。</p>
+        <span class="card-tag">Travel</span>
+      </article>
+    </div>
+  </section>
+
+  <!-- 信 -->
+  <section class="section letter" id="letter">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <p class="section-eyebrow">A Letter</p>
+      <h2 class="section-title">写 给 你 的 信</h2>
+    </div>
+
+    <div class="letter-paper">
+      <p class="letter-line">致 · 偶然来到这里的你：</p>
+      <p>
+        如果你也喜欢《翼をください》，那么我们大概拥有过同一片天空。
+      </p>
+      <p>
+        这首歌从昭和年间一直唱到今天，林原惠美的版本里，副歌升起的那一瞬，
+        像是有人轻轻把云推开，让一束光照下来。
+      </p>
+      <p>
+        愿你今天也能拥有这样一束光。<br />
+        愿你的翅膀，从未折叠。
+      </p>
+      <p class="letter-sign">—— 容纲，于一个有风的午后</p>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="footer-line"></div>
+    <p class="footer-bgm">
+      ♪ 正在播放：<span class="bgm-title">翼をください</span> — 林原めぐみ
+    </p>
+    <p class="footer-copy">© 2026 张容纲 · Made with 翼 & ♥</p>
+  </footer>
+
+  <!-- 网易云背景音乐（src 在用户点击进入后注入，以解锁自动播放） -->
+  <div class="music-iframe-wrap" id="musicWrap">
+    <iframe
+      id="musicFrame"
+      frameborder="no"
+      border="0"
+      marginwidth="0"
+      marginheight="0"
+      width="330"
+      height="86"
+      src="about:blank"
+    ></iframe>
+  </div>
+
+  <!-- 音乐控制按钮 -->
+  <button class="music-toggle" id="musicToggle" aria-label="切换音乐播放器">
+    <span class="music-toggle-icon">♪</span>
+    <span class="music-toggle-pulse"></span>
+  </button>
+
+  <script src="script.js"></script>
+</body>
+</html>
