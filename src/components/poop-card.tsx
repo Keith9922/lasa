@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import type { Prediction } from "@/lib/predict";
+import { COLOR_FILTER, COLOR_DOT_VAR } from "@/lib/poop-color";
 
 type Props = {
   prediction: Prediction;
@@ -10,32 +11,12 @@ type Props = {
   staticForShare?: boolean;
 };
 
-const COLOR_FILTER: Record<string, string> = {
-  normal: "none",
-  dark: "brightness(0.6) contrast(1.1)",
-  yellow: "hue-rotate(-10deg) brightness(1.15) saturate(0.9)",
-  pale: "brightness(1.4) saturate(0.4)",
-  green: "hue-rotate(40deg) saturate(0.7) brightness(0.9)",
-  red: "hue-rotate(-15deg) brightness(0.85)",
-  black: "brightness(0.3) contrast(1.1)",
-};
-
-const COLOR_DOT: Record<string, string> = {
-  normal: "var(--c-normal)",
-  dark: "var(--c-dark)",
-  yellow: "var(--c-yellow)",
-  pale: "var(--c-pale)",
-  green: "var(--c-green)",
-  red: "var(--c-red)",
-  black: "var(--c-black)",
-};
-
 export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
   { prediction, roast, staticForShare = false },
   ref,
 ) {
   const date = formatDate(new Date());
-  const filter = COLOR_FILTER[prediction.color] ?? "none";
+  const filter = COLOR_FILTER[prediction.color];
 
   return (
     <article ref={ref} className="polaroid" aria-label="预测结果卡">
@@ -55,7 +36,7 @@ export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
 
           <div className="chip-row">
             <span className="chip">
-              <span className="chip-dot" style={{ background: COLOR_DOT[prediction.color] }} aria-hidden />
+              <span className="chip-dot" style={{ background: COLOR_DOT_VAR[prediction.color] }} aria-hidden />
               {prediction.colorLabel}
             </span>
             {prediction.greasy && <span className="chip">油亮</span>}

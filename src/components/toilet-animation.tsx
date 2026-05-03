@@ -2,22 +2,13 @@
 
 import { useEffect, useState } from "react";
 import type { Prediction } from "@/lib/predict";
+import { COLOR_FILTER } from "@/lib/poop-color";
 
 type Props = {
   active: boolean;
   prediction: Prediction | null;
   /** 动画完成回调（包含 ~3.6 秒的全部时序）*/
   onComplete: () => void;
-};
-
-const COLOR_FILTER: Record<string, string> = {
-  normal: "none",
-  dark: "brightness(0.6) contrast(1.1)",
-  yellow: "hue-rotate(-10deg) brightness(1.15) saturate(0.9)",
-  pale: "brightness(1.4) saturate(0.4)",
-  green: "hue-rotate(40deg) saturate(0.7) brightness(0.9)",
-  red: "hue-rotate(-15deg) brightness(0.85)",
-  black: "brightness(0.3) contrast(1.1)",
 };
 
 export function ToiletAnimation({ active, prediction, onComplete }: Props) {
@@ -54,7 +45,7 @@ export function ToiletAnimation({ active, prediction, onComplete }: Props) {
     };
   }, [active, onComplete]);
 
-  const filter = prediction ? COLOR_FILTER[prediction.color] ?? "none" : "none";
+  const filter = prediction ? COLOR_FILTER[prediction.color] : "none";
   const bristol = prediction?.bristol ?? 4;
 
   return (

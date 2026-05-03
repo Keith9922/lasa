@@ -17,7 +17,9 @@ export function IntakeList({ items, onRemove, onClear }: Props) {
         <span className="intake-title">
           <Utensils size={14} aria-hidden />
           <span>今日摄入</span>
-          <span className="intake-count tabular">{items.length}</span>
+          {items.length > 0 && (
+            <span className="intake-count tabular">{items.length}</span>
+          )}
         </span>
         {items.length > 0 && (
           <button className="intake-clear" type="button" onClick={onClear}>
