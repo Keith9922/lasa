@@ -4,6 +4,8 @@
 
 import { z } from "zod";
 
+// ----- parse-meal -----
+
 export const ParsedFoodSchema = z.object({
   name: z.string().min(1).max(40),
   emoji: z.string().min(1).max(4),
@@ -34,31 +36,54 @@ export const ParseMealRequestSchema = z.object({
 
 // ----- generate-roast -----
 
-export const GenerateRoastRequestSchema = z.object({
-  prediction: z.object({
-    bristol: z.number().int().min(1).max(7),
-    bristolLabel: z.string(),
-    color: z.string(),
-    colorLabel: z.string(),
-    greasy: z.boolean(),
-    floats: z.boolean(),
-    smell: z.number().int().min(1).max(5),
-    volume: z.string(),
-    volumeLabel: z.string(),
-    macroRatio: z.object({
-      carbs: z.number(),
-      protein: z.number(),
-      fat: z.number(),
-    }),
-    totalMacros: z.object({
-      kcal: z.number(),
-      carbs: z.number(),
-      fiber: z.number(),
-      protein: z.number(),
-      fat: z.number(),
-    }),
-    reasons: z.array(z.string()),
+export const PoopColorEnum = z.enum([
+  "normal", "dark", "yellow", "pale", "green", "red", "black",
+]);
+export type PoopColor = z.infer<typeof PoopColorEnum>;
+
+export const VolumeEnum = z.enum(["small", "medium", "large", "huge"]);
+export type Volume = z.infer<typeof VolumeEnum>;
+
+const BristolEnum = z.union([
+  z.literal(1), z.literal(2), z.literal(3), z.literal(4),
+  z.literal(5), z.literal(6), z.literal(7),
+]);
+export type BristolType = z.infer<typeof BristolEnum>;
+
+const SmellEnum = z.union([
+  z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5),
+]);
+export type Smell = z.infer<typeof SmellEnum>;
+
+export const PredictionPayloadSchema = z.object({
+  bristol: BristolEnum,
+  bristolLabel: z.string(),
+  color: PoopColorEnum,
+  colorLabel: z.string(),
+  greasy: z.boolean(),
+  floats: z.boolean(),
+  smell: SmellEnum,
+  volume: VolumeEnum,
+  volumeLabel: z.string(),
+  macroRatio: z.object({
+    carbs: z.number(),
+    protein: z.number(),
+    fat: z.number(),
   }),
+  totalMacros: z.object({
+    kcal: z.number(),
+    carbs: z.number(),
+    fiber: z.number(),
+    protein: z.number(),
+    fat: z.number(),
+  }),
+  reasons: z.array(z.string()),
+});
+
+export type PredictionPayload = z.infer<typeof PredictionPayloadSchema>;
+
+export const GenerateRoastRequestSchema = z.object({
+  prediction: PredictionPayloadSchema,
   intakeSummary: z.array(z.string()).max(20),
 });
 

@@ -6,8 +6,11 @@
 
 import type { Prediction } from "./predict";
 
+/** 吐槽模板只关心这几个特征，不需要完整 Prediction */
+export type RoastSignals = Pick<Prediction, "bristol" | "color" | "greasy" | "smell">;
+
 type RoastTemplate = {
-  match: (p: Prediction) => boolean;
+  match: (p: RoastSignals) => boolean;
   picks: readonly string[];
 };
 
@@ -104,15 +107,10 @@ const TEMPLATES: readonly RoastTemplate[] = [
   },
 ] as const;
 
-export function pickRoast(prediction: Prediction, seed?: number): string {
-  for (const tpl of TEMPLATES) {
-    if (tpl.match(prediction)) {
-      const idx = pickIndex(tpl.picks.length, seed);
-      return tpl.picks[idx];
-    }
-  }
-  // 上面的默认兜底已覆盖所有情况，这行只是 TS 安全
-  return "今天的便便，没什么好吐槽的。";
+export function pickRoast(signals: RoastSignals, seed?: number): string {
+  // 最后一条模板 match=()=>true，所以 find 一定命中。`!` 是显式表达不变量。
+  const tpl = TEMPLATES.find((t) => t.match(signals))!;
+  return tpl.picks[pickIndex(tpl.picks.length, seed)];
 }
 
 function pickIndex(len: number, seed?: number): number {

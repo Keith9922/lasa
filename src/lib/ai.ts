@@ -23,6 +23,21 @@ type ChatOptions = {
   responseJson?: boolean;
 };
 
+/** AI 响应有时会包一层 ```json 代码块；这里同时处理裸 JSON 和被包裹的情况。 */
+export function extractJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+
 export async function chat({
   messages,
   temperature = 0.3,

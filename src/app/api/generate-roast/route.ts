@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { chat, AIError } from "@/lib/ai";
+import { chat, extractJson } from "@/lib/ai";
 import { pickRoast } from "@/lib/roasts";
 import {
   GenerateRoastRequestSchema,
@@ -44,40 +44,20 @@ export async function POST(req: Request) {
   }
 
   const { prediction, intakeSummary } = parsed.data;
+  const fallback = pickRoast(prediction);
 
-  // 兜底文案先准备好（AI 失败也能返回有效响应）
-  const fallback = pickRoast({
-    bristol: prediction.bristol as 1 | 2 | 3 | 4 | 5 | 6 | 7,
-    bristolLabel: prediction.bristolLabel,
-    color: prediction.color as never, // schemas 已 validate
-    colorLabel: prediction.colorLabel,
+  const userPayload = JSON.stringify({
+    eaten: intakeSummary,
+    bristol: `${prediction.bristol} (${prediction.bristolLabel})`,
+    color: prediction.colorLabel,
     greasy: prediction.greasy,
     floats: prediction.floats,
-    smell: prediction.smell as 1 | 2 | 3 | 4 | 5,
-    volume: prediction.volume as never,
-    volumeLabel: prediction.volumeLabel,
-    macroRatio: prediction.macroRatio,
-    totalMacros: prediction.totalMacros,
-    warnings: [],
-    reasons: prediction.reasons,
+    smell: `${prediction.smell}/5`,
+    volume: prediction.volumeLabel,
+    kcal: Math.round(prediction.totalMacros.kcal),
+    ratio: prediction.macroRatio,
+    key_reasons: prediction.reasons,
   });
-
-  const userPayload = JSON.stringify(
-    {
-      eaten: intakeSummary,
-      bristol: `${prediction.bristol} (${prediction.bristolLabel})`,
-      color: prediction.colorLabel,
-      greasy: prediction.greasy,
-      floats: prediction.floats,
-      smell: `${prediction.smell}/5`,
-      volume: prediction.volumeLabel,
-      kcal: Math.round(prediction.totalMacros.kcal),
-      ratio: prediction.macroRatio,
-      key_reasons: prediction.reasons,
-    },
-    null,
-    2,
-  );
 
   try {
     const raw = await chat({
@@ -90,31 +70,12 @@ export async function POST(req: Request) {
       responseJson: true,
     });
 
-    const obj = safeJsonParse(raw);
-    const validated = obj ? GenerateRoastResponseSchema.safeParse(obj) : null;
-    if (!validated || !validated.success) {
-      return NextResponse.json({ roast: fallback, source: "template" });
+    const validated = GenerateRoastResponseSchema.safeParse(extractJson(raw));
+    if (validated.success) {
+      return NextResponse.json({ roast: validated.data.roast, source: "ai" });
     }
-    return NextResponse.json({ roast: validated.data.roast, source: "ai" });
-  } catch (err) {
-    // AI 错就走兜底，不影响产品
-    if (err instanceof AIError) {
-      return NextResponse.json({ roast: fallback, source: "template" });
-    }
-    return NextResponse.json({ roast: fallback, source: "template" });
-  }
-}
-
-function safeJsonParse(s: string): unknown {
-  try {
-    return JSON.parse(s);
   } catch {
-    const match = s.match(/\{[\s\S]*\}/);
-    if (!match) return null;
-    try {
-      return JSON.parse(match[0]);
-    } catch {
-      return null;
-    }
+    // fall through to fallback
   }
+  return NextResponse.json({ roast: fallback, source: "template" });
 }

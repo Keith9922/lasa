@@ -7,12 +7,10 @@ import { COLOR_FILTER, COLOR_DOT_VAR } from "@/lib/poop-color";
 type Props = {
   prediction: Prediction;
   roast: string;
-  /** 用于截图导出时去掉 stink 等动画装饰；默认 false（实时展示）*/
-  staticForShare?: boolean;
 };
 
 export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
-  { prediction, roast, staticForShare = false },
+  { prediction, roast },
   ref,
 ) {
   const date = formatDate(new Date());
@@ -21,13 +19,9 @@ export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
   return (
     <article ref={ref} className="polaroid" aria-label="预测结果卡">
       <div className="polaroid-photo">
-        {!staticForShare && (
-          <>
-            <span className="stink" aria-hidden>〰</span>
-            <span className="stink" aria-hidden>〰</span>
-            <span className="stink" aria-hidden>〰</span>
-          </>
-        )}
+        <span className="stink" aria-hidden>〰</span>
+        <span className="stink" aria-hidden>〰</span>
+        <span className="stink" aria-hidden>〰</span>
 
         <div className="polaroid-meta">
           <span className="polaroid-eyebrow">Bristol Type</span>

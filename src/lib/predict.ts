@@ -8,17 +8,8 @@
  */
 
 import type { IntakeItem } from "./types";
-
-export type BristolType = 1 | 2 | 3 | 4 | 5 | 6 | 7;
-
-export type PoopColor =
-  | "normal" // 健康棕
-  | "dark" // 深褐（红肉/铁/可可）
-  | "yellow" // 黄褐（脂肪偏多）
-  | "pale" // 灰白（脂肪过多 / 胆汁问题）
-  | "green" // 绿褐（绿叶多）
-  | "red" // 暗红褐（甜菜/火龙果）
-  | "black"; // 黑褐（铁剂/蓝莓）
+import type { BristolType, PoopColor, Smell, Volume } from "./schemas";
+export type { BristolType, PoopColor, Smell, Volume } from "./schemas";
 
 export type PredictionInput = {
   items: IntakeItem[];
@@ -39,8 +30,8 @@ export type Prediction = {
   colorLabel: string;
   greasy: boolean;
   floats: boolean;
-  smell: 1 | 2 | 3 | 4 | 5;
-  volume: "small" | "medium" | "large" | "huge";
+  smell: Smell;
+  volume: Volume;
   volumeLabel: string;
   totalMacros: Macros;
   /** 碳水/蛋白/脂肪占总热量百分比（已四舍五入，相加 = 100） */
@@ -114,28 +105,16 @@ export function predict({ items }: PredictionInput): Prediction {
   }
 
   // ========= 颜色 =========
-  // 染色食物按"克数"投票
+  // 染色食物按"克数"投票。tag 是唯一来源（AI 解析时由 prompt 引导填入）。
   const colorWeights: Record<PoopColor, number> = {
-    normal: 50,
-    dark: 0,
-    yellow: 0,
-    pale: 0,
-    green: 0,
-    red: 0,
-    black: 0,
+    normal: 50, dark: 0, yellow: 0, pale: 0, green: 0, red: 0, black: 0,
   };
   for (const item of items) {
     const tagSet = new Set(item.tags);
     if (tagSet.has("red_meat")) colorWeights.dark += item.grams * 0.5;
-    if (tagSet.has("leafy_green") || tagSet.has("vegetable") || item.name.includes("青菜") || item.name.includes("菠菜")) {
-      colorWeights.green += item.grams * 0.6;
-    }
-    if (tagSet.has("beetroot") || item.name.includes("甜菜") || item.name.includes("火龙果")) {
-      colorWeights.red += item.grams * 1.5;
-    }
-    if (tagSet.has("dark_food") || item.name.includes("蓝莓") || item.name.includes("黑芝麻")) {
-      colorWeights.black += item.grams * 1.2;
-    }
+    if (tagSet.has("leafy_green")) colorWeights.green += item.grams * 0.7;
+    if (tagSet.has("red_pigment")) colorWeights.red += item.grams * 1.2;
+    if (tagSet.has("dark_pigment")) colorWeights.black += item.grams * 1.0;
   }
   if (fatPct > 0.5) colorWeights.pale += 200;
   else if (fatPct > 0.4) colorWeights.yellow += 150;
@@ -157,7 +136,7 @@ export function predict({ items }: PredictionInput): Prediction {
   if (tags.has("cruciferous")) smellScore++; // 西兰花、白菜等含硫
   if (totals.protein > 60) smellScore++;
   if (tags.has("alcohol")) smellScore++;
-  const smell = clamp(smellScore, 1, 5) as 1 | 2 | 3 | 4 | 5;
+  const smell = clamp(smellScore, 1, 5) as Smell;
 
   // ========= 量 =========
   const volumeScore = totals.fiber * 5 + totals.carbs * 0.4 + sumGrams(items) * 0.05;

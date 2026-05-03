@@ -7,7 +7,7 @@
  * 详细见 docs/interaction.md / docs/animation.md
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CircleHelp, ListChecks, Pencil } from "lucide-react";
 
 import { PORTION_LABEL, getFoodById, type PortionLevel, type PresetFood } from "@/lib/foods";
@@ -29,7 +29,7 @@ type TabKey = "quick" | "describe";
 
 type Phase =
   | { kind: "input" }
-  | { kind: "animating"; prediction: Prediction; roastPromise: Promise<string> }
+  | { kind: "animating"; prediction: Prediction }
   | { kind: "result"; prediction: Prediction; roast: string };
 
 const PORTION_CYCLE: PortionLevel[] = ["normal", "large", "huge", "small"];
@@ -41,8 +41,14 @@ export default function HomePage() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [toast, setToast] = useState<{ msg: string; show: boolean }>({ msg: "", show: false });
   const toastTimer = useRef<number | null>(null);
+  const roastRef = useRef<{ promise: Promise<string>; abort: AbortController } | null>(null);
 
   const intakeList = useMemo(() => Object.values(intake), [intake]);
+
+  useEffect(() => () => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    roastRef.current?.abort.abort();
+  }, []);
 
   // ---- handlers ----
 
@@ -90,7 +96,7 @@ export default function HomePage() {
       return next;
     });
     showToast(`已加入 ${foods.length} 项`);
-    setTab("quick"); // 切回首屏看摄入
+    setTab("quick");
   };
 
   const showToast = useCallback((msg: string) => {
@@ -104,17 +110,21 @@ export default function HomePage() {
   const handleStart = () => {
     if (intakeList.length === 0) return;
     const prediction = predict({ items: intakeList });
-    const roastPromise = fetchRoast(prediction, intakeList);
-    setPhase({ kind: "animating", prediction, roastPromise });
+    const abort = new AbortController();
+    roastRef.current = { promise: fetchRoast(prediction, intakeList, abort.signal), abort };
+    setPhase({ kind: "animating", prediction });
   };
 
   const handleAnimationComplete = useCallback(async () => {
-    if (phase.kind !== "animating") return;
-    const roast = await phase.roastPromise;
+    if (phase.kind !== "animating" || !roastRef.current) return;
+    const roast = await roastRef.current.promise;
+    roastRef.current = null;
     setPhase({ kind: "result", prediction: phase.prediction, roast });
   }, [phase]);
 
   const handleReset = () => {
+    roastRef.current?.abort.abort();
+    roastRef.current = null;
     setIntake({});
     setTab("quick");
     setPhase({ kind: "input" });
@@ -211,36 +221,31 @@ export default function HomePage() {
 
 // ---- helpers ----
 
-async function fetchRoast(prediction: Prediction, intake: IntakeItem[]): Promise<string> {
-  const summary = intake.map((i) => `${i.name}${i.portion ? `(${PORTION_LABEL[i.portion]})` : `(${i.grams}g)`}`);
+async function fetchRoast(
+  prediction: Prediction,
+  intake: IntakeItem[],
+  signal: AbortSignal,
+): Promise<string> {
+  const summary = intake.map((i) =>
+    `${i.name}${i.portion ? `(${PORTION_LABEL[i.portion]})` : `(${i.grams}g)`}`,
+  );
+  // 与 server 12s 超时呼应；过此值视为网络死锁
+  const timeout = AbortSignal.any([signal, AbortSignal.timeout(15_000)]);
+  // warnings 仅前端 UI 用，不送给模型
+  const { warnings: _warnings, ...payload } = prediction;
   try {
     const res = await fetch("/api/generate-roast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prediction: {
-          bristol: prediction.bristol,
-          bristolLabel: prediction.bristolLabel,
-          color: prediction.color,
-          colorLabel: prediction.colorLabel,
-          greasy: prediction.greasy,
-          floats: prediction.floats,
-          smell: prediction.smell,
-          volume: prediction.volume,
-          volumeLabel: prediction.volumeLabel,
-          macroRatio: prediction.macroRatio,
-          totalMacros: prediction.totalMacros,
-          reasons: prediction.reasons,
-        },
-        intakeSummary: summary,
-      }),
+      body: JSON.stringify({ prediction: payload, intakeSummary: summary }),
+      signal: timeout,
     });
     if (res.ok) {
       const data = (await res.json()) as { roast?: string };
       if (data.roast) return data.roast;
     }
   } catch {
-    // 网络问题 → 兜底
+    // abort / network → 兜底
   }
   return pickRoast(prediction);
 }

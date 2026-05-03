@@ -27,6 +27,7 @@ export function DescribePane({ onAddParsed }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: trimmed }),
+        signal: AbortSignal.timeout(15_000),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -54,8 +55,8 @@ export function DescribePane({ onAddParsed }: Props) {
   };
 
   const handleAppend = () => {
+    // 保留 text，关闭解析卡，让用户在原文上追加描述再次解析
     setState({ kind: "idle" });
-    // 保留 text，让用户继续追加
   };
 
   return (

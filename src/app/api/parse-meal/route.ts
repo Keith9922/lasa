@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { chat, AIError } from "@/lib/ai";
+import { chat, extractJson, AIError } from "@/lib/ai";
 import { ParseMealRequestSchema, ParseMealResponseSchema } from "@/lib/schemas";
 
 export const runtime = "nodejs";
@@ -41,11 +41,14 @@ const SYSTEM_PROMPT = `你是一个营养食物解析助手。你的任务是把
 - 一份外卖 ≈ 一人量
 - 模糊描述用 confidence: "medium" 或 "low"
 
-可用 tags（自由组合）：
-- staple（主食），red_meat（红肉），fish（鱼），dairy（乳制品），lactose
-- vegetable（蔬菜），leafy_green（绿叶菜），cruciferous（十字花科），fruit
-- high_fat（高脂），high_sugar（高糖），high_fiber（高纤维），fried（油炸）
-- alcohol（酒精），spicy（辛辣），fast_food（快餐），sweet（甜食）
+可用 tags（自由组合，**与颜色相关的染色 tag 务必加全**）：
+- 类型：staple（主食），red_meat（红肉，含牛猪羊），fish（鱼），dairy（乳制品），lactose
+- 形态：vegetable（蔬菜），leafy_green（绿叶菜：菠菜/青菜/羽衣甘蓝/西兰花），cruciferous（十字花科），fruit
+- 营养特征：high_fat（高脂），high_sugar（高糖），high_fiber（高纤维），fried（油炸），sweet（甜食）
+- 染色（影响便便颜色，能加就加）：
+  - red_pigment：甜菜根/红心火龙果/红心番薯/红色食用色素
+  - dark_pigment：蓝莓/黑莓/黑芝麻/黑米/铁剂/活性炭
+- 其他：alcohol（酒精），spicy（辛辣），fast_food（快餐）
 
 规则：
 - 估算请基于常识，不要拒绝。如果完全没法估算就忽略，不要乱编。
@@ -75,7 +78,7 @@ export async function POST(req: Request) {
       responseJson: true,
     });
 
-    const obj = safeJsonParse(raw);
+    const obj = extractJson(raw);
     if (!obj) {
       return NextResponse.json({ error: "AI 返回非 JSON" }, { status: 502 });
     }
@@ -93,20 +96,5 @@ export async function POST(req: Request) {
     const status = err instanceof AIError ? err.status ?? 503 : 503;
     const message = err instanceof Error ? err.message : "未知错误";
     return NextResponse.json({ error: message }, { status });
-  }
-}
-
-function safeJsonParse(s: string): unknown {
-  try {
-    return JSON.parse(s);
-  } catch {
-    // 模型有时会包一层 ```json 代码块
-    const match = s.match(/\{[\s\S]*\}/);
-    if (!match) return null;
-    try {
-      return JSON.parse(match[0]);
-    } catch {
-      return null;
-    }
   }
 }
