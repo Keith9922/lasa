@@ -1,9 +1,8 @@
 /**
  * 预设快捷食物（首屏 Tab 1 用）
  *
- * 每个 PresetFood 是一个"餐食类别"，比如"火锅"包含的不是单一食材，
- * 而是一顿火锅的典型宏量营养素估算（基于常见点单组合）。
- * 真实的食材级别数据见 research/food-macros.json，由 AI 解析时使用。
+ * 每个 PresetFood 是一个"餐食类别"。tags 用于预测引擎匹配规则。
+ * 食材级数据见 research/food-macros.json，用于 AI 解析时参考。
  */
 
 export type PortionLevel = "small" | "normal" | "large" | "huge";
@@ -44,14 +43,14 @@ export const PRESET_FOODS: PresetFood[] = [
     emoji: "🍲",
     name: "火锅",
     base: { grams: 800, kcal: 1200, carbs: 50, fiber: 8, protein: 80, fat: 70 },
-    tags: ["red_meat", "vegetable", "spicy"],
+    tags: ["red_meat", "vegetable", "spicy", "high_fat"],
   },
   {
     id: "bbq",
     emoji: "🍖",
     name: "烧烤",
     base: { grams: 500, kcal: 1100, carbs: 30, fiber: 4, protein: 70, fat: 75 },
-    tags: ["red_meat", "high_fat", "char"],
+    tags: ["red_meat", "high_fat", "fried"],
   },
   {
     id: "milk_tea",
@@ -65,28 +64,28 @@ export const PRESET_FOODS: PresetFood[] = [
     emoji: "🍔",
     name: "汉堡",
     base: { grams: 280, kcal: 700, carbs: 50, fiber: 3, protein: 30, fat: 38 },
-    tags: ["fast_food", "high_fat"],
+    tags: ["fast_food", "high_fat", "red_meat"],
   },
   {
     id: "sushi",
     emoji: "🍣",
     name: "寿司",
     base: { grams: 350, kcal: 500, carbs: 80, fiber: 2, protein: 25, fat: 8 },
-    tags: ["fish", "rice"],
+    tags: ["fish", "staple"],
   },
   {
     id: "salad",
     emoji: "🥗",
     name: "沙拉",
     base: { grams: 350, kcal: 220, carbs: 18, fiber: 8, protein: 10, fat: 12 },
-    tags: ["vegetable", "high_fiber"],
+    tags: ["vegetable", "leafy_green", "high_fiber"],
   },
   {
     id: "pizza",
     emoji: "🍕",
     name: "披萨",
     base: { grams: 400, kcal: 1000, carbs: 110, fiber: 6, protein: 40, fat: 40 },
-    tags: ["fast_food", "cheese", "high_fat"],
+    tags: ["fast_food", "dairy", "high_fat"],
   },
   {
     id: "noodle",

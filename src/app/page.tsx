@@ -1,44 +1,56 @@
 "use client";
 
 /**
- * 拉啥 · 首屏（v0.1）
+ * 拉啥 · 主页面（v0.2）
  *
- * 实现 docs/interaction.md 屏 1：双 Tab 输入 + 今日摄入 + 开拉 CTA
- * 当前未接 AI 解析与出卡动效（下一步），点击"开拉"会弹一个临时提示
+ * 状态机：input → animating → result，单页内切换。
+ * 详细见 docs/interaction.md / docs/animation.md
  */
 
-import { useMemo, useState } from "react";
-import {
-  PRESET_FOODS,
-  PORTION_LABEL,
-  PORTION_MULTIPLIER,
-  type PortionLevel,
-  type PresetFood,
-} from "@/lib/foods";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { CircleHelp, ListChecks, Pencil } from "lucide-react";
+
+import { PORTION_LABEL, getFoodById, type PortionLevel, type PresetFood } from "@/lib/foods";
+import { intakeFromPreset, intakeFromAi } from "@/lib/intake";
+import { predict, type Prediction } from "@/lib/predict";
 import type { IntakeItem } from "@/lib/types";
+import type { ParsedFood } from "@/lib/schemas";
+import { pickRoast } from "@/lib/roasts";
+
+import { QuickPickPane } from "@/components/quick-pick-pane";
+import { DescribePane } from "@/components/describe-pane";
+import { IntakeList } from "@/components/intake-list";
+import { ToiletAnimation } from "@/components/toilet-animation";
+import { ResultView } from "@/components/result-view";
+import { HelpModal } from "@/components/help-modal";
+import { Toast } from "@/components/toast";
 
 type TabKey = "quick" | "describe";
+
+type Phase =
+  | { kind: "input" }
+  | { kind: "animating"; prediction: Prediction; roastPromise: Promise<string> }
+  | { kind: "result"; prediction: Prediction; roast: string };
 
 const PORTION_CYCLE: PortionLevel[] = ["normal", "large", "huge", "small"];
 
 export default function HomePage() {
   const [tab, setTab] = useState<TabKey>("quick");
   const [intake, setIntake] = useState<Record<string, IntakeItem>>({});
-  const [describeText, setDescribeText] = useState("");
-  const [isParsing, setIsParsing] = useState(false);
-  const [parsedItems, setParsedItems] = useState<IntakeItem[] | null>(null);
+  const [phase, setPhase] = useState<Phase>({ kind: "input" });
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; show: boolean }>({ msg: "", show: false });
+  const toastTimer = useRef<number | null>(null);
 
   const intakeList = useMemo(() => Object.values(intake), [intake]);
-  const intakeCount = intakeList.length;
 
-  const togglePresetFood = (food: PresetFood) => {
+  // ---- handlers ----
+
+  const togglePreset = (food: PresetFood) => {
     setIntake((prev) => {
       const next = { ...prev };
-      if (next[food.id]) {
-        delete next[food.id];
-      } else {
-        next[food.id] = makeIntakeFromPreset(food, "normal");
-      }
+      if (next[food.id]) delete next[food.id];
+      else next[food.id] = intakeFromPreset(food, "normal");
       return next;
     });
   };
@@ -46,18 +58,13 @@ export default function HomePage() {
   const cyclePortion = (foodId: string) => {
     setIntake((prev) => {
       const item = prev[foodId];
-      if (!item || item.source !== "preset" || !item.portion) return prev;
-      const food = PRESET_FOODS.find((f) => f.id === foodId);
+      if (!item?.portion) return prev;
+      const food = getFoodById(foodId);
       if (!food) return prev;
       const idx = PORTION_CYCLE.indexOf(item.portion);
       const nextLevel = PORTION_CYCLE[(idx + 1) % PORTION_CYCLE.length];
-      return { ...prev, [foodId]: makeIntakeFromPreset(food, nextLevel) };
+      return { ...prev, [foodId]: intakeFromPreset(food, nextLevel) };
     });
-  };
-
-  const clearIntake = () => {
-    if (intakeCount === 0) return;
-    if (confirm("清空今日摄入吗？")) setIntake({});
   };
 
   const removeIntake = (id: string) => {
@@ -68,239 +75,172 @@ export default function HomePage() {
     });
   };
 
-  // 临时假解析（等下一步接 AI）
-  const fakeParse = () => {
-    if (!describeText.trim()) return;
-    setIsParsing(true);
-    setParsedItems(null);
-    setTimeout(() => {
-      // 假数据示例
-      const fake: IntakeItem[] = [
-        makeIntakeFromAi("ai-1", "🥩", "肥牛", 400),
-        makeIntakeFromAi("ai-2", "🐑", "羊肉", 200),
-        makeIntakeFromAi("ai-3", "🥬", "青菜", 150),
-        makeIntakeFromAi("ai-4", "🥤", "可乐", 330),
-      ];
-      setParsedItems(fake);
-      setIsParsing(false);
-    }, 800);
+  const clearIntake = () => {
+    if (intakeList.length === 0) return;
+    setIntake({});
   };
 
-  const acceptParsed = () => {
-    if (!parsedItems) return;
+  const addParsed = (foods: ParsedFood[]) => {
     setIntake((prev) => {
       const next = { ...prev };
-      for (const item of parsedItems) next[item.id] = item;
+      foods.forEach((f, i) => {
+        const item = intakeFromAi(f, Object.keys(next).length + i);
+        next[item.id] = item;
+      });
       return next;
     });
-    setParsedItems(null);
-    setDescribeText("");
+    showToast(`已加入 ${foods.length} 项`);
+    setTab("quick"); // 切回首屏看摄入
   };
+
+  const showToast = useCallback((msg: string) => {
+    setToast({ msg, show: true });
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => {
+      setToast((t) => ({ ...t, show: false }));
+    }, 2200);
+  }, []);
 
   const handleStart = () => {
-    if (intakeCount === 0) return;
-    alert(`📋 已摄入 ${intakeCount} 项\n\n（下一步：接 AI + 出卡动效）`);
+    if (intakeList.length === 0) return;
+    const prediction = predict({ items: intakeList });
+    const roastPromise = fetchRoast(prediction, intakeList);
+    setPhase({ kind: "animating", prediction, roastPromise });
   };
 
+  const handleAnimationComplete = useCallback(async () => {
+    if (phase.kind !== "animating") return;
+    const roast = await phase.roastPromise;
+    setPhase({ kind: "result", prediction: phase.prediction, roast });
+  }, [phase]);
+
+  const handleReset = () => {
+    setIntake({});
+    setTab("quick");
+    setPhase({ kind: "input" });
+  };
+
+  // ---- render ----
+
   return (
-    <main className="app-container">
-      <header className="brand-bar">
-        <div className="brand-logo">
-          <span className="brand-logo-emoji">💩</span>
-          <span>拉啥</span>
-        </div>
-        <button className="help-btn" type="button">？怎么玩</button>
-      </header>
+    <main className="page">
+      <div className="shell">
+        {phase.kind === "input" || phase.kind === "animating" ? (
+          <>
+            <header className="brand">
+              <span className="brand-logo">
+                <span className="brand-emoji" aria-hidden>💩</span>
+                <span className="brand-zh">拉啥</span>
+              </span>
+              <button className="icon-btn" type="button" onClick={() => setHelpOpen(true)} aria-label="怎么玩">
+                <CircleHelp size={14} aria-hidden />
+                <span>怎么玩</span>
+              </button>
+            </header>
 
-      <div className="hero">
-        <h1>今天吃了啥？</h1>
-        <p>告诉我，我猜你明天拉啥 🔮</p>
-      </div>
+            <section className="hero">
+              <p className="hero-eyebrow">Today In · Tomorrow Out</p>
+              <h1 className="hero-title">今天吃了啥？</h1>
+              <p className="hero-sub">告诉我，我猜你明天拉啥。基于一个不太正经但有点道理的伪科学理论。</p>
+            </section>
 
-      {/* Tabs */}
-      <div className="tab-pill" role="tablist">
-        <button
-          className="tab-pill-btn"
-          data-active={tab === "quick"}
-          onClick={() => setTab("quick")}
-          role="tab"
-          aria-selected={tab === "quick"}
-          type="button"
-        >
-          🍱 快捷选择
-        </button>
-        <button
-          className="tab-pill-btn"
-          data-active={tab === "describe"}
-          onClick={() => setTab("describe")}
-          role="tab"
-          aria-selected={tab === "describe"}
-          type="button"
-        >
-          ✍️ 描述一下
-        </button>
-      </div>
-
-      {/* Tab: 快捷选择 */}
-      {tab === "quick" && (
-        <section className="pane">
-          <p className="pane-hint">点一下加进今日摄入；选中后再点切换份量</p>
-          <div className="food-grid">
-            {PRESET_FOODS.map((food) => {
-              const item = intake[food.id];
-              const selected = !!item;
-              return (
-                <button
-                  key={food.id}
-                  className="food-card"
-                  data-selected={selected}
-                  type="button"
-                  onClick={() => (selected ? cyclePortion(food.id) : togglePresetFood(food))}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    if (selected) togglePresetFood(food); // 长按等右键 = 移除
-                  }}
-                >
-                  <span className="food-emoji">{food.emoji}</span>
-                  <span className="food-name">{food.name}</span>
-                  {selected && item.portion && (
-                    <span className="food-portion">×{PORTION_MULTIPLIER[item.portion]} {PORTION_LABEL[item.portion]}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Tab: 描述一下 */}
-      {tab === "describe" && (
-        <section className="pane">
-          <p className="pane-hint">越详细越准。可以写菜名、份量、做法</p>
-          <textarea
-            className="describe-textarea"
-            placeholder="例如：中午吃火锅吃了两盘羊肉、一盘青菜，是清汤锅，喝了两杯啤酒……"
-            value={describeText}
-            onChange={(e) => setDescribeText(e.target.value)}
-            rows={6}
-          />
-          <button
-            className="btn-accent"
-            type="button"
-            onClick={fakeParse}
-            disabled={!describeText.trim() || isParsing}
-          >
-            {isParsing ? "✨ AI 解析中…" : "✨ AI 解析"}
-          </button>
-
-          {parsedItems && (
-            <div className="parsed-card">
-              <div className="parsed-card-header">
-                <span>解析结果（点击确认加入）</span>
-                <span className="ai-badge">AI 估算</span>
-              </div>
-              <ul className="parsed-list">
-                {parsedItems.map((item) => (
-                  <li key={item.id}>
-                    <span>{item.emoji} {item.name}</span>
-                    <span>{item.grams}g</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="parsed-actions">
-                <button className="btn-ghost" type="button" onClick={() => setParsedItems(null)}>
-                  取消
-                </button>
-                <button className="btn-primary-sm" type="button" onClick={acceptParsed}>
-                  全部加入
-                </button>
-              </div>
+            <div className="tabs" role="tablist" aria-label="输入方式">
+              <button
+                className="tab"
+                data-active={tab === "quick"}
+                onClick={() => setTab("quick")}
+                role="tab"
+                aria-selected={tab === "quick"}
+                type="button"
+              >
+                <ListChecks size={14} aria-hidden /> 快捷选择
+              </button>
+              <button
+                className="tab"
+                data-active={tab === "describe"}
+                onClick={() => setTab("describe")}
+                role="tab"
+                aria-selected={tab === "describe"}
+                type="button"
+              >
+                <Pencil size={14} aria-hidden /> 描述一下
+              </button>
             </div>
-          )}
-        </section>
-      )}
 
-      {/* 今日摄入（共享，跨 Tab 常驻） */}
-      <section className="intake-list" aria-label="今日摄入">
-        <div className="intake-list-header">
-          <span className="intake-list-title">
-            🍴 今日摄入 · 已加 {intakeCount} 项
-          </span>
-          {intakeCount > 0 && (
-            <button className="intake-list-clear" type="button" onClick={clearIntake}>
-              清空
-            </button>
-          )}
-        </div>
-        {intakeCount === 0 ? (
-          <p className="intake-list-empty">还没加东西～挑几个开始吧</p>
+            {tab === "quick" ? (
+              <QuickPickPane intake={intake} onToggle={togglePreset} onCyclePortion={cyclePortion} />
+            ) : (
+              <DescribePane onAddParsed={addParsed} />
+            )}
+
+            <IntakeList items={intakeList} onRemove={removeIntake} onClear={clearIntake} />
+
+            <div className="cta-wrap">
+              <button
+                className="cta"
+                type="button"
+                onClick={handleStart}
+                disabled={intakeList.length === 0}
+              >
+                {intakeList.length === 0 ? "先选点吃的" : "开 拉"}
+              </button>
+              <p className="disclaimer">仅供娱乐 · 不构成医学建议</p>
+            </div>
+          </>
         ) : (
-          <ul className="intake-list-items">
-            {intakeList.map((item) => (
-              <li key={item.id}>
-                <button
-                  className="intake-chip"
-                  onClick={() => removeIntake(item.id)}
-                  title="点击移除"
-                  type="button"
-                >
-                  <span>{item.emoji}</span>
-                  <span>{item.name}</span>
-                  <span className="intake-chip-grams">
-                    {item.portion ? `×${PORTION_MULTIPLIER[item.portion]}` : `${item.grams}g`}
-                  </span>
-                  <span className="intake-chip-x">×</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <ResultView
+            prediction={phase.prediction}
+            roast={phase.roast}
+            onReset={handleReset}
+            onToast={showToast}
+          />
         )}
-      </section>
+      </div>
 
-      {/* 主 CTA */}
-      <button
-        className="cta-start"
-        type="button"
-        onClick={handleStart}
-        disabled={intakeCount === 0}
-      >
-        💩 开 拉 ！
-      </button>
+      <ToiletAnimation
+        active={phase.kind === "animating"}
+        prediction={phase.kind === "animating" ? phase.prediction : null}
+        onComplete={handleAnimationComplete}
+      />
 
-      <p className="disclaimer">仅供娱乐 · 不构成医学建议</p>
+      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <Toast message={toast.msg} show={toast.show} />
     </main>
   );
 }
 
 // ---- helpers ----
 
-function makeIntakeFromPreset(food: PresetFood, portion: PortionLevel): IntakeItem {
-  const m = PORTION_MULTIPLIER[portion];
-  return {
-    id: food.id,
-    emoji: food.emoji,
-    name: food.name,
-    grams: Math.round(food.base.grams * m),
-    source: "preset",
-    portion,
-    macros: {
-      kcal: Math.round(food.base.kcal * m),
-      carbs: Math.round(food.base.carbs * m),
-      fiber: Math.round(food.base.fiber * m),
-      protein: Math.round(food.base.protein * m),
-      fat: Math.round(food.base.fat * m),
-    },
-  };
-}
-
-function makeIntakeFromAi(id: string, emoji: string, name: string, grams: number): IntakeItem {
-  // 临时占位，等下一步真的接 AI 时由 server 给出真实 macros
-  return {
-    id,
-    emoji,
-    name,
-    grams,
-    source: "ai",
-    macros: { kcal: 0, carbs: 0, fiber: 0, protein: 0, fat: 0 },
-  };
+async function fetchRoast(prediction: Prediction, intake: IntakeItem[]): Promise<string> {
+  const summary = intake.map((i) => `${i.name}${i.portion ? `(${PORTION_LABEL[i.portion]})` : `(${i.grams}g)`}`);
+  try {
+    const res = await fetch("/api/generate-roast", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prediction: {
+          bristol: prediction.bristol,
+          bristolLabel: prediction.bristolLabel,
+          color: prediction.color,
+          colorLabel: prediction.colorLabel,
+          greasy: prediction.greasy,
+          floats: prediction.floats,
+          smell: prediction.smell,
+          volume: prediction.volume,
+          volumeLabel: prediction.volumeLabel,
+          macroRatio: prediction.macroRatio,
+          totalMacros: prediction.totalMacros,
+          reasons: prediction.reasons,
+        },
+        intakeSummary: summary,
+      }),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { roast?: string };
+      if (data.roast) return data.roast;
+    }
+  } catch {
+    // 网络问题 → 兜底
+  }
+  return pickRoast(prediction);
 }

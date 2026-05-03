@@ -24,4 +24,6 @@ export type IntakeItem = {
     protein: number;
     fat: number;
   };
+  /** 标签集合，预测引擎用于规则匹配（high_fat / dairy / red_meat / leafy_green ...） */
+  tags: string[];
 };
