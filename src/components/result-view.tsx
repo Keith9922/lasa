@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronDown, RotateCcw, Share2, AlertTriangle } from "lucide
 import { toPng } from "html-to-image";
 import type { Prediction } from "@/lib/predict";
 import type { Achievement } from "@/lib/achievements";
+import { inlineImages } from "@/lib/snapshot";
 import { PoopCard } from "./poop-card";
 import { NutritionRing } from "./nutrition-ring";
 import { AchievementOverlay } from "./achievement-overlay";
@@ -23,10 +24,15 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   const handleShare = async () => {
-    if (!cardRef.current || sharing) return;
+    const node = cardRef.current;
+    if (!node || sharing) return;
     setSharing(true);
+
+    // iOS 上 html-to-image 序列化外部 <img> + CSS filter 会丢；
+    // 先把每张 img 烤进 canvas（带 filter）变成 data URL 再截，截完还原
+    const restoreImages = await inlineImages(node);
     try {
-      const dataUrl = await toPng(cardRef.current, {
+      const dataUrl = await toPng(node, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: "transparent",
@@ -60,6 +66,7 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
     } catch {
       onToast("分享失败，截屏试试");
     } finally {
+      restoreImages();
       setSharing(false);
     }
   };
