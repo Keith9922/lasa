@@ -229,8 +229,8 @@ async function fetchRoast(
   const summary = intake.map((i) =>
     `${i.name}${i.portion ? `(${PORTION_LABEL[i.portion]})` : `(${i.grams}g)`}`,
   );
-  // 与 server 12s 超时呼应；过此值视为网络死锁
-  const timeout = AbortSignal.any([signal, AbortSignal.timeout(15_000)]);
+  // 与 server 35s 超时呼应；reasoning 模型思考较慢
+  const timeout = AbortSignal.any([signal, AbortSignal.timeout(40_000)]);
   // warnings 仅前端 UI 用，不送给模型
   const { warnings: _warnings, ...payload } = prediction;
   try {

@@ -27,7 +27,7 @@ export function DescribePane({ onAddParsed }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: trimmed }),
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(40_000),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);

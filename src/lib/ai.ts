@@ -4,8 +4,8 @@
  */
 
 const API_KEY = process.env.MINIMAX_API_KEY;
-const BASE_URL = process.env.MINIMAX_BASE_URL ?? "https://api.minimax.io/v1";
-const MODEL = process.env.MINIMAX_MODEL ?? "MiniMax-Text-01";
+const BASE_URL = process.env.MINIMAX_BASE_URL ?? "https://api.minimaxi.com/v1";
+const MODEL = process.env.MINIMAX_MODEL ?? "MiniMax-M2.7";
 
 export class AIError extends Error {
   constructor(message: string, readonly status?: number) {
@@ -63,8 +63,8 @@ export async function chat({
       Authorization: `Bearer ${API_KEY}`,
     },
     body: JSON.stringify(body),
-    // 12s 上限：超时就走兜底，避免移动端用户干等
-    signal: AbortSignal.timeout(12_000),
+    // 35s 上限：MiniMax-M2.7 是 reasoning 模型，思考一段后再输出，常见 10-20s
+    signal: AbortSignal.timeout(35_000),
   });
 
   if (!res.ok) {
