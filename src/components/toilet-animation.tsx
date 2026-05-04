@@ -11,6 +11,9 @@ type Props = {
   onComplete: () => void;
 };
 
+/** 8 个水珠的发射角度（度），均匀散开 */
+const DROPLET_ANGLES = [-72, -52, -30, -10, 10, 30, 52, 72] as const;
+
 export function ToiletAnimation({ active, prediction, onComplete }: Props) {
   const [shake, setShake] = useState(false);
   const [toiletIn, setToiletIn] = useState(false);
@@ -24,11 +27,11 @@ export function ToiletAnimation({ active, prediction, onComplete }: Props) {
     setDrop(false);
     setSplash(false);
 
-    const reduced = typeof window !== "undefined"
-      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (reduced) {
-      // 跳过动画，直接 1 秒后触发完成（仍然给加载文案一点时间感）
       const t = setTimeout(onComplete, 1000);
       return () => clearTimeout(t);
     }
@@ -57,8 +60,8 @@ export function ToiletAnimation({ active, prediction, onComplete }: Props) {
       aria-live="polite"
     >
       <div className="scene-stage">
+        {/* 掉落的💩 */}
         <div className="poo-falling" data-drop={drop}>
-          {/* 动画里用原生 img；next/image 的 lazy/srcset 会和 keyframe 时序冲突 */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/poo/type-${bristol}.png`}
@@ -66,18 +69,47 @@ export function ToiletAnimation({ active, prediction, onComplete }: Props) {
             style={{ width: "100%", height: "100%", filter }}
           />
         </div>
-        <svg className="splash" data-go={splash} width="120" height="60" viewBox="0 0 120 60" aria-hidden>
-          <path
-            d="M10 50 Q15 20 25 35 M30 55 Q40 15 45 40 M55 50 Q60 10 65 30 M75 55 Q85 20 90 40 M95 50 Q105 25 110 45"
-            stroke="var(--brand)"
-            strokeWidth="3"
-            fill="none"
-            strokeLinecap="round"
-          />
-        </svg>
-        <div className="ripple" data-go={splash} />
+
+        {/* 水花层：放射水珠 + 中心皇冠 + 同心涟漪 */}
+        <div className="splash-layer" data-go={splash}>
+          {DROPLET_ANGLES.map((deg, i) => (
+            <span
+              key={i}
+              className="splash-droplet"
+              style={{
+                ["--angle" as string]: `${deg}deg`,
+                ["--delay" as string]: `${i * 18}ms`,
+              }}
+            />
+          ))}
+          {/* 皇冠形水花 SVG（5 个尖刺） */}
+          <svg className="splash-crown" viewBox="0 0 200 80" aria-hidden>
+            <defs>
+              <linearGradient id="splash-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#9CD8F2" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#5BB0E0" stopOpacity="0.5" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M20 70 Q40 18 60 50 Q80 8 100 45 Q120 4 140 48 Q160 18 180 70"
+              fill="none"
+              stroke="url(#splash-grad)"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+            />
+            <circle cx="60" cy="32" r="3" fill="#9CD8F2" />
+            <circle cx="100" cy="22" r="3.5" fill="#9CD8F2" />
+            <circle cx="140" cy="30" r="3" fill="#9CD8F2" />
+          </svg>
+          {/* 双层涟漪 */}
+          <span className="ripple ripple-1" />
+          <span className="ripple ripple-2" />
+        </div>
+
+        {/* 马桶（更大尺寸） */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="toilet" src="/toilet.png" alt="" data-in={toiletIn} />
+
         <p className="scene-loading">computing your future…</p>
       </div>
     </div>
