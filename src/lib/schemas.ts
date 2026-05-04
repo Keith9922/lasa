@@ -116,8 +116,8 @@ export const GenerateRoastRequestSchema = z.object({
 });
 
 export const GenerateRoastResponseSchema = z.object({
-  // 上限 50 给 AI 一点容差；前端展示限 32（CSS line-clamp 兜底，必要时省略号）
-  roast: z.string().min(8).max(50),
+  // 容差给到 80；prompt 要求 32 字内，AI 偶尔超额；过长由前端 CSS line-clamp 兜底
+  roast: z.string().min(8).max(80),
 });
 
 export type GenerateRoastResponse = z.infer<typeof GenerateRoastResponseSchema>;
