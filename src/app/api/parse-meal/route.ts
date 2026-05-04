@@ -12,6 +12,8 @@ import { chat, extractJson, AIError } from "@/lib/ai";
 import { ParseMealRequestSchema, ParseMealResponseSchema } from "@/lib/schemas";
 
 export const runtime = "nodejs";
+// Vercel 函数超时上限：Hobby 10s 不够 reasoning 模型，给 60s 安全垫
+export const maxDuration = 60;
 
 const SYSTEM_PROMPT = `你是一个严谨的中文饮食解析器。把用户口语描述的一餐拆解成"可被代码消费"的结构化食物清单 + 宏量营养素估算。
 

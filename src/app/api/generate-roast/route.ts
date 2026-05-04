@@ -14,6 +14,8 @@ import {
 } from "@/lib/schemas";
 
 export const runtime = "nodejs";
+// Vercel 函数超时上限：Hobby 10s 不够 reasoning 模型，给 60s 安全垫
+export const maxDuration = 60;
 
 const SYSTEM_PROMPT = `你是一个网感十足、嘴贱但善意的"💩预言家"。根据用户今天的食物和预测的便便属性，生成一句吐槽。
 
