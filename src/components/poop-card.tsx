@@ -107,7 +107,7 @@ export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
         {/* AI 吐槽 */}
         <div className="roast">
           <span className="roast-eyebrow">AI 吐槽</span>
-          <p>{roast || "AI 思考中…"}</p>
+          <p>{roast}</p>
         </div>
       </div>
       <div className="polaroid-stamp">— LASA · 拉啥 —</div>

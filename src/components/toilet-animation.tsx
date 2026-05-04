@@ -7,18 +7,27 @@ import { COLOR_FILTER } from "@/lib/poop-color";
 type Props = {
   active: boolean;
   prediction: Prediction | null;
-  /** 动画完成回调（包含 ~3.6 秒的全部时序）*/
+  /** 动画完成回调；onComplete 触发后页面会等真 AI 回包再切结果，期间 scene 仍可见 */
   onComplete: () => void;
 };
 
 /** 8 个水珠的发射角度（度），均匀散开 */
 const DROPLET_ANGLES = [-72, -52, -30, -10, 10, 30, 52, 72] as const;
 
+/** scene 期间轮播的 loading 文案，每 ~2 秒切一条 */
+const LOADING_LINES = [
+  "computing your future…",
+  "AI 在编写吐槽…",
+  "马桶在做最后估算…",
+  "稍等一下，要好了…",
+] as const;
+
 export function ToiletAnimation({ active, prediction, onComplete }: Props) {
   const [shake, setShake] = useState(false);
   const [toiletIn, setToiletIn] = useState(false);
   const [drop, setDrop] = useState(false);
   const [splash, setSplash] = useState(false);
+  const [loadingIdx, setLoadingIdx] = useState(0);
 
   useEffect(() => {
     if (!active) return;
@@ -26,6 +35,7 @@ export function ToiletAnimation({ active, prediction, onComplete }: Props) {
     setToiletIn(false);
     setDrop(false);
     setSplash(false);
+    setLoadingIdx(0);
 
     const reduced =
       typeof window !== "undefined" &&
@@ -36,16 +46,22 @@ export function ToiletAnimation({ active, prediction, onComplete }: Props) {
       return () => clearTimeout(t);
     }
 
-    // 时序压缩到 ~2.6s，去掉马桶"傻坐等结果"的空白
+    // 主时序 ~3.5s，给 AI 多留思考时间；onComplete 后 page 会 await 真 roast 才切页
     const t1 = setTimeout(() => setShake(true), 50);
-    const t2 = setTimeout(() => setToiletIn(true), 200);
-    const t3 = setTimeout(() => setShake(false), 380);
-    const t4 = setTimeout(() => setDrop(true), 750);
-    const t5 = setTimeout(() => setSplash(true), 1500);
-    const t6 = setTimeout(onComplete, 2600);
+    const t2 = setTimeout(() => setToiletIn(true), 250);
+    const t3 = setTimeout(() => setShake(false), 430);
+    const t4 = setTimeout(() => setDrop(true), 1000);
+    const t5 = setTimeout(() => setSplash(true), 1900);
+    const t6 = setTimeout(onComplete, 3500);
+
+    // 文案轮播（仅视觉，scene 期间一直走）
+    const loadingTimer = window.setInterval(() => {
+      setLoadingIdx((i) => (i + 1) % LOADING_LINES.length);
+    }, 2200);
 
     return () => {
       [t1, t2, t3, t4, t5, t6].forEach(clearTimeout);
+      window.clearInterval(loadingTimer);
     };
   }, [active, onComplete]);
 
@@ -111,7 +127,7 @@ export function ToiletAnimation({ active, prediction, onComplete }: Props) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="toilet" src="/toilet.png" alt="" data-in={toiletIn} />
 
-        <p className="scene-loading">computing your future…</p>
+        <p className="scene-loading" aria-live="polite">{LOADING_LINES[loadingIdx]}</p>
       </div>
     </div>
   );

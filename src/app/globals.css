@@ -925,6 +925,12 @@ img { display: block; max-width: 100%; }
   text-transform: uppercase;
   color: var(--ink-3);
   white-space: nowrap;
+  animation: scene-loading-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes scene-loading-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
 /* ===================================================

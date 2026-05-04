@@ -119,6 +119,7 @@ export default function HomePage() {
 
   const handleAnimationComplete = useCallback(async () => {
     if (phase.kind !== "animating" || !roastRef.current) return;
+    // 等真 AI 吐槽到位才出卡（兜底也是真句子，不会留占位）
     const roast = await roastRef.current.promise;
     roastRef.current = null;
     setPhase({
