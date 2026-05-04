@@ -2,10 +2,10 @@
 
 import { useRef, useState } from "react";
 import { ArrowLeft, ChevronDown, RotateCcw, Share2, AlertTriangle } from "lucide-react";
-import { toPng } from "html-to-image";
+import { domToPng } from "modern-screenshot";
 import type { Prediction } from "@/lib/predict";
 import type { Achievement } from "@/lib/achievements";
-import { inlineImages } from "@/lib/snapshot";
+import { inlineImages, freezeTransform } from "@/lib/snapshot";
 import { PoopCard } from "./poop-card";
 import { NutritionRing } from "./nutrition-ring";
 import { AchievementOverlay } from "./achievement-overlay";
@@ -28,18 +28,19 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
     if (!node || sharing) return;
     setSharing(true);
 
-    // iOS 上 html-to-image 序列化外部 <img> + CSS filter 会丢；
-    // 先把每张 img 烤进 canvas（带 filter）变成 data URL 再截，截完还原
+    // 1) 预烤所有 <img>（含 CSS filter）→ 内联 data URL，绕开 iOS 的 foreignObject 丢图 bug
+    // 2) 截图期间临时去掉 polaroid 的 rotate(-1deg)，避免桌面端 bounding box 错位
     const restoreImages = await inlineImages(node);
+    const restoreTransform = freezeTransform(node);
     try {
-      const dataUrl = await toPng(node, {
-        cacheBust: true,
-        pixelRatio: 2,
+      const dataUrl = await domToPng(node, {
+        scale: 2,
         backgroundColor: "transparent",
       });
 
-      // 尝试 Web Share API（移动端原生分享）
-      if (navigator.canShare) {
+      // 尝试 Web Share API（移动端原生分享，iOS 14.5+ / Android Chrome 75+）
+      const shareCapable = typeof navigator !== "undefined" && typeof navigator.canShare === "function";
+      if (shareCapable) {
         try {
           const blob = await (await fetch(dataUrl)).blob();
           const file = new File([blob], `lasa-${Date.now()}.png`, { type: "image/png" });
@@ -52,20 +53,43 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
             onToast("已分享 ✓");
             return;
           }
-        } catch {
-          // share 失败 / 用户取消 → 退到下载
+        } catch (err) {
+          // 用户取消 share 不是错误，静默退到下载
+          if ((err as DOMException)?.name === "AbortError") {
+            onToast("已取消");
+            return;
+          }
+          // 其他错误：退到下载
         }
       }
 
-      // 桌面/不支持原生分享：下载图片
+      // 桌面 / 不支持原生分享：下载图片
+      // iOS Safari 不支持 <a download>，需要新窗口打开 data URL 让用户长按保存
+      const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent);
+      if (isIOS && !shareCapable) {
+        // 极端情况：iOS 老版本不支持 share API。新窗口展示让用户长按保存
+        const win = window.open();
+        if (win) {
+          win.document.write(`<img src="${dataUrl}" style="max-width:100%" />`);
+          onToast("长按图片保存到相册");
+        } else {
+          onToast("请允许弹窗后重试");
+        }
+        return;
+      }
+
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = `lasa-${Date.now()}.png`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       onToast("已保存到本地 ✓");
-    } catch {
+    } catch (err) {
+      console.error("[share] failed", err);
       onToast("分享失败，截屏试试");
     } finally {
+      restoreTransform();
       restoreImages();
       setSharing(false);
     }
