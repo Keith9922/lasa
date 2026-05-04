@@ -4,17 +4,20 @@ import { useRef, useState } from "react";
 import { ArrowLeft, ChevronDown, RotateCcw, Share2, AlertTriangle } from "lucide-react";
 import { toPng } from "html-to-image";
 import type { Prediction } from "@/lib/predict";
+import type { Achievement } from "@/lib/achievements";
 import { PoopCard } from "./poop-card";
 import { NutritionRing } from "./nutrition-ring";
+import { AchievementOverlay } from "./achievement-overlay";
 
 type Props = {
   prediction: Prediction;
   roast: string;
+  achievement: Achievement | null;
   onReset: () => void;
   onToast: (msg: string) => void;
 };
 
-export function ResultView({ prediction, roast, onReset, onToast }: Props) {
+export function ResultView({ prediction, roast, achievement, onReset, onToast }: Props) {
   const [whyOpen, setWhyOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -63,6 +66,8 @@ export function ResultView({ prediction, roast, onReset, onToast }: Props) {
 
   return (
     <div className="result">
+      <AchievementOverlay achievement={achievement} />
+
       <button className="result-back" type="button" onClick={onReset}>
         <ArrowLeft size={14} aria-hidden />
         <span>再来一顿</span>

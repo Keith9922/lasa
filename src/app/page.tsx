@@ -13,6 +13,7 @@ import { CircleHelp, ListChecks, Pencil } from "lucide-react";
 import { PORTION_LABEL, getFoodById, type PortionLevel, type PresetFood } from "@/lib/foods";
 import { intakeFromPreset, intakeFromAi } from "@/lib/intake";
 import { predict, type Prediction } from "@/lib/predict";
+import { pickAchievement, type Achievement } from "@/lib/achievements";
 import type { IntakeItem } from "@/lib/types";
 import type { ParsedFood } from "@/lib/schemas";
 import { pickRoast } from "@/lib/roasts";
@@ -29,8 +30,8 @@ type TabKey = "quick" | "describe";
 
 type Phase =
   | { kind: "input" }
-  | { kind: "animating"; prediction: Prediction }
-  | { kind: "result"; prediction: Prediction; roast: string };
+  | { kind: "animating"; prediction: Prediction; achievement: Achievement | null }
+  | { kind: "result"; prediction: Prediction; roast: string; achievement: Achievement | null };
 
 const PORTION_CYCLE: PortionLevel[] = ["normal", "large", "huge", "small"];
 
@@ -110,16 +111,22 @@ export default function HomePage() {
   const handleStart = () => {
     if (intakeList.length === 0) return;
     const prediction = predict({ items: intakeList });
+    const achievement = pickAchievement(prediction, intakeList);
     const abort = new AbortController();
     roastRef.current = { promise: fetchRoast(prediction, intakeList, abort.signal), abort };
-    setPhase({ kind: "animating", prediction });
+    setPhase({ kind: "animating", prediction, achievement });
   };
 
   const handleAnimationComplete = useCallback(async () => {
     if (phase.kind !== "animating" || !roastRef.current) return;
     const roast = await roastRef.current.promise;
     roastRef.current = null;
-    setPhase({ kind: "result", prediction: phase.prediction, roast });
+    setPhase({
+      kind: "result",
+      prediction: phase.prediction,
+      roast,
+      achievement: phase.achievement,
+    });
   }, [phase]);
 
   const handleReset = () => {
@@ -201,6 +208,7 @@ export default function HomePage() {
           <ResultView
             prediction={phase.prediction}
             roast={phase.roast}
+            achievement={phase.achievement}
             onReset={handleReset}
             onToast={showToast}
           />
