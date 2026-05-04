@@ -2,11 +2,14 @@
 
 import { forwardRef } from "react";
 import type { Prediction } from "@/lib/predict";
+import type { Achievement } from "@/lib/achievements";
+import { RARITY_LABEL } from "@/lib/achievements";
 import { COLOR_FILTER, COLOR_DOT_VAR } from "@/lib/poop-color";
 
 type Props = {
   prediction: Prediction;
   roast: string;
+  achievement: Achievement | null;
 };
 
 const VOLUME_RANK: Record<Prediction["volume"], number> = {
@@ -17,11 +20,15 @@ const VOLUME_RANK: Record<Prediction["volume"], number> = {
 };
 
 export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
-  { prediction, roast },
+  { prediction, roast, achievement },
   ref,
 ) {
   const date = formatDate(new Date());
   const filter = COLOR_FILTER[prediction.color];
+  const tier =
+    achievement && achievement.rarity !== "common"
+      ? (achievement.rarity as "rare" | "epic" | "legendary")
+      : null;
 
   return (
     <article ref={ref} className="polaroid" aria-label="预测结果卡">
@@ -30,6 +37,14 @@ export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
         <span className="stink" aria-hidden>〰</span>
         <span className="stink" aria-hidden>〰</span>
         <span className="stink" aria-hidden>〰</span>
+
+        {/* 稀有度徽章（仅 rare/epic/legendary 出现）*/}
+        {tier && achievement && (
+          <div className={`polaroid-rarity polaroid-rarity--${tier}`}>
+            <span className="polaroid-rarity-tier">{RARITY_LABEL[tier]}</span>
+            <span className="polaroid-rarity-title">{achievement.title}</span>
+          </div>
+        )}
 
         {/* 顶部 eyebrow */}
         <div className="polaroid-top">

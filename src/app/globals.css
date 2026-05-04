@@ -984,11 +984,14 @@ img { display: block; max-width: 100%; }
 
 .polaroid {
   background: var(--card);
-  padding: 14px 14px 28px;
+  padding: 10px 10px 22px;
   border-radius: 6px;
   box-shadow: var(--sh-polaroid);
   position: relative;
   transform: rotate(-1deg);
+  max-width: 380px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .polaroid-photo {
@@ -998,11 +1001,11 @@ img { display: block; max-width: 100%; }
     radial-gradient(circle at 88% 92%, rgba(231, 111, 81, 0.10), transparent 50%),
     linear-gradient(165deg, #FFF8E7 0%, #FCE9A8 60%, #F5C842 100%);
   border-radius: 4px;
-  padding: 14px 16px 18px;
+  padding: 10px 12px 14px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .polaroid-photo::before {
@@ -1041,15 +1044,14 @@ img { display: block; max-width: 100%; }
   letter-spacing: 0.06em;
 }
 
-/* ===== Hero：大数字 + 大💩 居中 ===== */
+/* ===== Hero：紧凑数字 + 居中💩 ===== */
 .polaroid-hero {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   position: relative;
   z-index: 1;
-  min-height: 180px;
 }
 
 .polaroid-num-wrap {
@@ -1063,7 +1065,7 @@ img { display: block; max-width: 100%; }
   font-family: var(--font-display);
   font-weight: 900;
   font-style: italic;
-  font-size: 96px;
+  font-size: 72px;
   line-height: 0.85;
   color: var(--hot);
   letter-spacing: -0.06em;
@@ -1071,16 +1073,16 @@ img { display: block; max-width: 100%; }
 }
 
 @media (min-width: 768px) {
-  .polaroid-num { font-size: 112px; }
+  .polaroid-num { font-size: 84px; }
 }
 
 .polaroid-label {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--ink);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
-  padding: 3px 10px;
+  padding: 3px 9px;
   background: rgba(255, 255, 255, 0.6);
   border-radius: var(--r-pill);
 }
@@ -1089,12 +1091,12 @@ img { display: block; max-width: 100%; }
   position: relative;
   width: 100%;
   aspect-ratio: 1;
-  max-width: 200px;
+  max-width: 140px;
   margin-left: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 8px 12px rgba(45, 27, 14, 0.18));
+  filter: drop-shadow(0 6px 10px rgba(45, 27, 14, 0.18));
 }
 
 .polaroid-poo-big img {
@@ -1125,26 +1127,26 @@ img { display: block; max-width: 100%; }
 .trinity-cell {
   background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(4px);
-  border-radius: var(--r-md);
-  padding: 10px 8px;
+  border-radius: var(--r-sm);
+  padding: 7px 6px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   border: 1px solid rgba(45, 27, 14, 0.08);
   text-align: center;
 }
 
 .trinity-label {
   font-weight: 800;
-  font-size: 12px;
-  letter-spacing: 0.12em;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   color: var(--ink-2);
 }
 
 .trinity-color {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 -3px 6px rgba(0, 0, 0, 0.18);
 }
@@ -1152,13 +1154,13 @@ img { display: block; max-width: 100%; }
 .trinity-dots {
   display: flex;
   gap: 3px;
-  height: 28px;
+  height: 22px;
   align-items: center;
 }
 
 .trinity-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--ink-4);
   transition: background 0.2s;
@@ -1171,30 +1173,31 @@ img { display: block; max-width: 100%; }
 .trinity-bars {
   display: flex;
   gap: 3px;
-  height: 28px;
+  height: 22px;
   align-items: flex-end;
 }
 
 .trinity-bar {
-  width: 7px;
+  width: 5px;
   background: var(--ink-4);
   border-radius: 2px;
 }
 
-.trinity-bar:nth-child(1) { height: 8px; }
-.trinity-bar:nth-child(2) { height: 14px; }
-.trinity-bar:nth-child(3) { height: 20px; }
-.trinity-bar:nth-child(4) { height: 26px; }
+.trinity-bar:nth-child(1) { height: 7px; }
+.trinity-bar:nth-child(2) { height: 12px; }
+.trinity-bar:nth-child(3) { height: 16px; }
+.trinity-bar:nth-child(4) { height: 21px; }
 
 .trinity-bar[data-on="true"] {
   background: var(--brand);
 }
 
 .trinity-value {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--ink);
   letter-spacing: 0.04em;
+  line-height: 1.2;
 }
 
 /* ===== 状态徽章（油亮 / 漂浮）===== */
@@ -1208,9 +1211,9 @@ img { display: block; max-width: 100%; }
 }
 
 .state-badge {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 3px 9px;
   border-radius: var(--r-pill);
   letter-spacing: 0.04em;
   border: 1px dashed rgba(45, 27, 14, 0.25);
@@ -1256,12 +1259,12 @@ img { display: block; max-width: 100%; }
 .roast {
   position: relative;
   z-index: 1;
-  padding: 12px 14px 14px;
+  padding: 8px 11px 10px;
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(4px);
-  border-radius: var(--r-md);
-  font-size: 14px;
-  line-height: 1.6;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  line-height: 1.55;
   color: var(--ink);
   font-weight: 500;
   border-left: 3px solid var(--hot);
@@ -1291,20 +1294,20 @@ img { display: block; max-width: 100%; }
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 700;
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--hot);
-  margin-bottom: 6px;
+  margin-bottom: 3px;
   display: block;
 }
 
 .polaroid-stamp {
   text-align: center;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--ink-3);
-  margin-top: 10px;
+  margin-top: 8px;
   letter-spacing: 0.1em;
 }
 
@@ -1581,101 +1584,72 @@ img { display: block; max-width: 100%; }
 }
 
 /* ===================================================
-   成就 / 稀有度 overlay
+   成就 / 稀有度
+   - rare/epic 在 PoopCard 里以 .polaroid-rarity 徽章呈现
+   - legendary 仍走全屏 overlay + 烟花
    =================================================== */
 
-/* ---- 顶部横幅（rare / epic）---- */
-.achv-banner {
-  display: flex;
+/* ---- 卡内稀有徽章（rare / epic / legendary）---- */
+.polaroid-rarity {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 10px 4px 4px;
   border-radius: var(--r-pill);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
-  color: var(--ink);
   position: relative;
-  overflow: hidden;
-  animation: achv-slide 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both,
-             achv-fade-out 0.4s ease 3.6s forwards;
+  z-index: 1;
+  max-width: 100%;
 }
 
-.achv-banner-tier {
+.polaroid-rarity-tier {
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 900;
-  font-size: 11px;
-  letter-spacing: 0.25em;
-  padding: 3px 10px;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  padding: 2px 8px;
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.72);
   white-space: nowrap;
 }
 
-.achv-banner-title {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+.polaroid-rarity-title {
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
 }
 
-@keyframes achv-slide {
-  0% { transform: translateY(-20px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes achv-fade-out {
-  0% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-12px); }
-}
-
-.achv-banner--rare {
+.polaroid-rarity--rare {
   background: linear-gradient(110deg, #B8E0FF, #DCEAFF);
-  border: 1.5px solid #5BB0E0;
-  box-shadow: 0 6px 18px -6px rgba(91, 176, 224, 0.6);
+  border: 1px solid #5BB0E0;
 }
-
-.achv-banner--rare .achv-banner-tier {
+.polaroid-rarity--rare .polaroid-rarity-tier {
   background: #5BB0E0;
   color: #fff;
 }
 
-.achv-banner--epic {
-  background: linear-gradient(110deg, #FFE38A, #FFB766, #F5C842);
-  background-size: 200% 100%;
-  border: 1.5px solid #C9882F;
-  box-shadow: 0 8px 22px -6px rgba(231, 140, 0, 0.55);
-  animation: achv-slide 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both,
-             epic-shimmer 2.6s linear infinite,
-             achv-fade-out 0.4s ease 3.6s forwards;
-  color: #5C3A1D;
+.polaroid-rarity--epic {
+  background: linear-gradient(110deg, #FFE38A, #FFB766);
+  border: 1px solid #C9882F;
 }
-
-.achv-banner--epic .achv-banner-tier {
+.polaroid-rarity--epic .polaroid-rarity-tier {
   background: #C9882F;
   color: #fff;
 }
 
-@keyframes epic-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+.polaroid-rarity--legendary {
+  background: linear-gradient(110deg, #FFD06A, #FF8FA3);
+  border: 1px solid #E76F51;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
 }
-
-.achv-banner-shimmer {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    100deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.7) 50%,
-    transparent 70%
-  );
-  animation: shimmer-sweep 2.2s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmer-sweep {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+.polaroid-rarity--legendary .polaroid-rarity-tier {
+  background: linear-gradient(110deg, #C9882F, #E76F51);
+  color: #fff;
 }
 
 /* ---- LEGENDARY 全屏弹窗 ---- */
@@ -1863,7 +1837,6 @@ img { display: block; max-width: 100%; }
   .cta { animation: none; }
   .toilet { transition: opacity 0.3s; }
   .stink { animation: none; opacity: 0.5; }
-  .firework-particle, .confetti-piece, .achv-banner-shimmer { animation: none !important; }
+  .firework-particle, .confetti-piece { animation: none !important; }
   .legendary-card { animation: legendary-fade 0.3s ease both; }
-  .achv-banner { animation: achv-slide 0.2s ease both, achv-fade-out 0.3s ease 4s forwards; }
 }

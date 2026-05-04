@@ -19,32 +19,21 @@ const FIREWORK_PALETTES: readonly (readonly string[])[] = [
   ["#5BB0E0", "#9CD8F2", "#FFFFFF"], // ice
 ];
 
+/**
+ * 仅 legendary 触发全屏烟花 + 弹窗。
+ * rare/epic 已在 PoopCard 内以徽章形式呈现，不再做 banner。
+ */
 export function AchievementOverlay({ achievement }: Props) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!achievement || achievement.rarity === "common") {
-      setVisible(false);
-      return;
-    }
-    setVisible(true);
-    if (achievement.rarity === "legendary") {
-      // 传说级要用户主动关闭
-      return;
-    }
-    const t = setTimeout(() => setVisible(false), 4000);
-    return () => clearTimeout(t);
+    setVisible(achievement?.rarity === "legendary");
   }, [achievement]);
 
-  if (!achievement || achievement.rarity === "common" || !visible) return null;
+  if (!achievement || achievement.rarity !== "legendary" || !visible) return null;
 
-  if (achievement.rarity === "legendary") {
-    return <Legendary achievement={achievement} onClose={() => setVisible(false)} />;
-  }
-  return <Banner achievement={achievement} />;
+  return <Legendary achievement={achievement} onClose={() => setVisible(false)} />;
 }
-
-// =================== Legendary（全屏烟花 + 弹窗）===================
 
 function Legendary({ achievement, onClose }: { achievement: Achievement; onClose: () => void }) {
   return (
@@ -134,25 +123,6 @@ function Firework({
           />
         );
       })}
-    </div>
-  );
-}
-
-// =================== Epic / Rare（顶部横幅）===================
-
-function Banner({ achievement }: { achievement: Achievement }) {
-  const isEpic = achievement.rarity === "epic";
-  return (
-    <div
-      className={`achv-banner achv-banner--${achievement.rarity}`}
-      role="status"
-      aria-live="polite"
-    >
-      <span className="achv-banner-tier">
-        {RARITY_LABEL[achievement.rarity as "rare" | "epic"]}
-      </span>
-      <span className="achv-banner-title">{achievement.title}</span>
-      {isEpic && <span className="achv-banner-shimmer" aria-hidden />}
     </div>
   );
 }

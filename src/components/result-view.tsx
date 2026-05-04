@@ -78,7 +78,7 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
         <h2 className="result-headline">你 明 天 大 概 会 拉 出</h2>
       </div>
 
-      <PoopCard ref={cardRef} prediction={prediction} roast={roast} />
+      <PoopCard ref={cardRef} prediction={prediction} roast={roast} achievement={achievement} />
 
       <NutritionRing prediction={prediction} />
 
