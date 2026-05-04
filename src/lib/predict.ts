@@ -2,7 +2,7 @@
  * 预测引擎
  *
  * 输入：今日摄入累加后的宏量营养素 + 标签集合
- * 输出：Bristol 形态、颜色、油亮、漂浮、气味、量、热量、警告
+ * 输出：Bristol 形态、颜色、油亮、漂浮、臭味、量、热量、警告
  *
  * 规则依据：research/prediction-rules.md + research/theory.md
  */
@@ -129,7 +129,7 @@ export function predict({ items }: PredictionInput): Prediction {
   const floats = fatPct > 0.45 || totals.fat > 70;
   if (greasy) reasons.push("油脂多 → 大便会油亮");
 
-  // ========= 气味 =========
+  // ========= 臭味 =========
   let smellScore = 1;
   if (tags.has("red_meat")) smellScore++;
   if (countTag(items, "dairy") > 300) smellScore++;

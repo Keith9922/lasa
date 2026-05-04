@@ -93,7 +93,7 @@ const TEMPLATES: readonly RoastTemplate[] = [
     match: (p) => p.smell >= 4,
     picks: [
       "蹲坑关好门，味儿传三楼。",
-      "气味拉满，室友求你开抽风。",
+      "臭味拉满，室友求你开抽风。",
     ],
   },
   // 默认兜底

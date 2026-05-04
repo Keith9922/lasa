@@ -53,7 +53,7 @@ export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
           </div>
         </div>
 
-        {/* 颜色 / 气味 / 排量 三联属性 */}
+        {/* 颜色 / 臭味 / 排量 三联属性 */}
         <div className="trinity">
           <div className="trinity-cell">
             <span className="trinity-label">颜色</span>
@@ -65,8 +65,8 @@ export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
             <span className="trinity-value">{prediction.colorLabel}</span>
           </div>
           <div className="trinity-cell">
-            <span className="trinity-label">气味</span>
-            <span className="trinity-dots" aria-label={`气味 ${prediction.smell}/5`}>
+            <span className="trinity-label">臭味</span>
+            <span className="trinity-dots" aria-label={`臭味 ${prediction.smell}/5`}>
               {[1, 2, 3, 4, 5].map((i) => (
                 <span
                   key={i}
