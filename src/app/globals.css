@@ -1136,13 +1136,10 @@ img { display: block; max-width: 100%; }
 }
 
 .trinity-label {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.12em;
   color: var(--ink-2);
-  text-transform: uppercase;
 }
 
 .trinity-color {
@@ -1272,6 +1269,22 @@ img { display: block; max-width: 100%; }
 
 .roast p {
   margin: 0;
+}
+
+.roast[data-pending="true"] p {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.roast-dots {
+  display: inline-block;
+  margin-left: 2px;
+  animation: roast-dots 1.4s ease-in-out infinite;
+}
+
+@keyframes roast-dots {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
 .roast-eyebrow {

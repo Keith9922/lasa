@@ -53,10 +53,10 @@ export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
           </div>
         </div>
 
-        {/* 色 / 香 / 量 三联属性 */}
+        {/* 颜色 / 气味 / 排量 三联属性 */}
         <div className="trinity">
           <div className="trinity-cell">
-            <span className="trinity-label">色</span>
+            <span className="trinity-label">颜色</span>
             <span
               className="trinity-color"
               style={{ background: COLOR_DOT_VAR[prediction.color] }}
@@ -65,7 +65,7 @@ export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
             <span className="trinity-value">{prediction.colorLabel}</span>
           </div>
           <div className="trinity-cell">
-            <span className="trinity-label">香</span>
+            <span className="trinity-label">气味</span>
             <span className="trinity-dots" aria-label={`气味 ${prediction.smell}/5`}>
               {[1, 2, 3, 4, 5].map((i) => (
                 <span
@@ -78,8 +78,8 @@ export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
             <span className="trinity-value">{prediction.smell}/5</span>
           </div>
           <div className="trinity-cell">
-            <span className="trinity-label">量</span>
-            <span className="trinity-bars" aria-label={`量 ${prediction.volumeLabel}`}>
+            <span className="trinity-label">排量</span>
+            <span className="trinity-bars" aria-label={`排量 ${prediction.volumeLabel}`}>
               {[1, 2, 3, 4].map((i) => (
                 <span
                   key={i}
@@ -104,10 +104,17 @@ export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
           </div>
         )}
 
-        {/* AI 吐槽 */}
-        <div className="roast">
+        {/* AI 吐槽（roast 还在路上时显示思考中占位）*/}
+        <div className="roast" data-pending={!roast}>
           <span className="roast-eyebrow">AI 吐槽</span>
-          <p>{roast}</p>
+          <p>
+            {roast || (
+              <>
+                AI 正在搜刮素材
+                <span className="roast-dots" aria-hidden>…</span>
+              </>
+            )}
+          </p>
         </div>
       </div>
       <div className="polaroid-stamp">— LASA · 拉啥 —</div>

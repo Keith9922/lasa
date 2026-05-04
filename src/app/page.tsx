@@ -117,17 +117,21 @@ export default function HomePage() {
     setPhase({ kind: "animating", prediction, achievement });
   };
 
-  const handleAnimationComplete = useCallback(async () => {
+  const handleAnimationComplete = useCallback(() => {
     if (phase.kind !== "animating" || !roastRef.current) return;
-    // 等真 AI 吐槽到位才出卡（兜底也是真句子，不会留占位）
-    const roast = await roastRef.current.promise;
-    roastRef.current = null;
-    setPhase({
-      kind: "result",
-      prediction: phase.prediction,
-      roast,
-      achievement: phase.achievement,
+    const { promise } = roastRef.current;
+    const { prediction, achievement } = phase;
+    // 立即出卡（roast 留空，PoopCard 自带思考中占位）
+    setPhase({ kind: "result", prediction, roast: "", achievement });
+    // AI 到位后原地替换；用户中途 reset 已切到 input → functional update 自动忽略
+    promise.then((roast) => {
+      setPhase((prev) =>
+        prev.kind === "result" && prev.prediction === prediction
+          ? { ...prev, roast }
+          : prev,
+      );
     });
+    roastRef.current = null;
   }, [phase]);
 
   const handleReset = () => {
