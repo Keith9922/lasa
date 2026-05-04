@@ -1643,13 +1643,19 @@ img { display: block; max-width: 100%; }
   user-select: none;
 }
 
-.share-modal-download {
+.share-modal-actions {
+  display: flex;
+  gap: 8px;
   width: 100%;
+}
+
+.share-modal-action {
+  flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 10px 14px;
   border-radius: var(--r-pill);
   background: var(--soft);
   color: var(--ink-2);
@@ -1658,7 +1664,15 @@ img { display: block; max-width: 100%; }
   transition: background 0.15s;
 }
 
-.share-modal-download:hover { background: var(--line); }
+.share-modal-action:hover { background: var(--line); color: var(--ink); }
+
+.share-modal-fineprint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: center;
+  letter-spacing: 0.02em;
+}
 
 /* ===== Toast ===== */
 .toast {

@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ChevronDown, RotateCcw, Share2, AlertTriangle } from "lucide-react";
-import { domToPng } from "modern-screenshot";
+import { domToBlob } from "modern-screenshot";
 import type { Prediction } from "@/lib/predict";
 import type { Achievement } from "@/lib/achievements";
 import { inlineImages, freezeTransform } from "@/lib/snapshot";
@@ -29,9 +29,16 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
   const [shareImage, setShareImage] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
-  const triggerDownload = (dataUrl: string) => {
+  // 用 useEffect 兜底回收 blob URL，避免内存泄漏
+  useEffect(() => {
+    return () => {
+      if (shareImage?.startsWith("blob:")) URL.revokeObjectURL(shareImage);
+    };
+  }, [shareImage]);
+
+  const triggerDownloadBlob = (url: string) => {
     const a = document.createElement("a");
-    a.href = dataUrl;
+    a.href = url;
     a.download = `lasa-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
@@ -47,20 +54,23 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
     // 2) 临时去掉 polaroid rotate(-1deg)，避免桌面端 bounding box 错位
     const restoreImages = await inlineImages(node);
     const restoreTransform = freezeTransform(node);
-    let dataUrl = "";
+    let blob: Blob;
     try {
-      dataUrl = await domToPng(node, { scale: 2, backgroundColor: "transparent" });
+      // 直接生成 Blob（比 dataURL 更省内存，移动端 img 加载也更稳）
+      blob = await domToBlob(node, { scale: 2, backgroundColor: "transparent" });
     } catch (err) {
       console.error("[share] capture failed", err);
       onToast("截图失败，截屏试试");
       setSharing(false);
+      restoreTransform();
+      restoreImages();
       return;
     } finally {
       restoreTransform();
       restoreImages();
     }
 
-    // 优先 Web Share API（iOS Safari / 部分 Android Chrome 支持文件分享）
+    // 优先 Web Share API（iOS Safari / 支持的 Android）
     const canShareFiles =
       typeof navigator !== "undefined" &&
       typeof navigator.canShare === "function" &&
@@ -68,7 +78,6 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
 
     if (canShareFiles) {
       try {
-        const blob = await (await fetch(dataUrl)).blob();
         const file = new File([blob], `lasa-${Date.now()}.png`, { type: "image/png" });
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({
@@ -81,34 +90,31 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
           return;
         }
       } catch (err) {
-        // 用户取消（AbortError）静默退出，不弹兜底 modal
         if ((err as DOMException)?.name === "AbortError") {
           setSharing(false);
           return;
         }
-        // 其他错误：继续走 modal 兜底
         console.warn("[share] webshare failed, fallback to modal", err);
       }
     }
 
-    // 桌面端：直接 a download；失败时用户能从 modal 长按 / 右键另存
+    // 创建 blob URL（比 data URL 短得多，长按保存也能正常弹菜单）
+    const blobUrl = URL.createObjectURL(blob);
+
+    // 桌面端：尝试直接下载 + 同时弹 modal 让用户能再次操作
     if (!isMobileUA()) {
       try {
-        triggerDownload(dataUrl);
+        triggerDownloadBlob(blobUrl);
         onToast("已保存到本地 ✓");
-        // 同时弹 modal 作为可复盘的确认（包含图片预览，桌面也实用）
-        setShareImage(dataUrl);
-        setSharing(false);
-        return;
       } catch (err) {
-        console.warn("[share] anchor download failed", err);
+        console.warn("[share] desktop download failed", err);
       }
+    } else {
+      onToast("长按图片保存到相册");
     }
 
-    // 手机其他场景（夸克 / UC / QQ / 微信内 / Android Chrome 不支持 file share）
-    // → 弹 modal 让用户长按图片保存到相册
-    setShareImage(dataUrl);
-    onToast("长按图片保存");
+    // 移动端 / 桌面都弹 modal（移动端是主救命稻草，桌面端是预览）
+    setShareImage(blobUrl);
     setSharing(false);
   };
 
@@ -168,8 +174,11 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
 
       <ShareModal
         dataUrl={shareImage}
-        onClose={() => setShareImage(null)}
-        onDownload={shareImage ? () => triggerDownload(shareImage) : undefined}
+        onClose={() => {
+          if (shareImage?.startsWith("blob:")) URL.revokeObjectURL(shareImage);
+          setShareImage(null);
+        }}
+        onDownload={shareImage ? () => triggerDownloadBlob(shareImage) : undefined}
       />
     </div>
   );

@@ -1,23 +1,24 @@
 "use client";
 
 import { useEffect } from "react";
-import { Download, X } from "lucide-react";
+import { Download, ExternalLink, X } from "lucide-react";
 
 type Props = {
   dataUrl: string | null;
   onClose: () => void;
-  /** 提供下载按钮兜底（PC 浏览器仍点这个走 a download）*/
+  /** 浏览器支持时尝试 a download */
   onDownload?: () => void;
 };
 
 /**
- * 截图保存兜底：把截图嵌在页内大图，让用户**长按保存到相册**。
- * 适用于：
- * - 手机浏览器 a download 被拦
- * - Web Share API 不可用 / 用户取消
- * - 夸克 / UC / QQ 浏览器等国内 Chromium 系
+ * 截图保存兜底，三种保存路径：
+ *  1. 长按图片 → 浏览器原生"保存到相册"（手机最通用）
+ *  2. 在新标签打开 → 浏览器单独展示图片，用户在标签里再操作
+ *  3. 下载到电脑 → a download（部分手机浏览器会被拦，PC 一般 OK）
  *
- * 桌面端用户也可以右键另存或点"下载"按钮兜底。
+ * 移动端 Quark / UC / QQ / 微信 / Chrome：通常 1 必能用；
+ * 老 iOS Safari：1 + 2 都行；
+ * PC：1 + 3 双保险。
  */
 export function ShareModal({ dataUrl, onClose, onDownload }: Props) {
   useEffect(() => {
@@ -30,6 +31,10 @@ export function ShareModal({ dataUrl, onClose, onDownload }: Props) {
   }, [dataUrl, onClose]);
 
   if (!dataUrl) return null;
+
+  const openInNewTab = () => {
+    window.open(dataUrl, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div
@@ -50,21 +55,34 @@ export function ShareModal({ dataUrl, onClose, onDownload }: Props) {
         </button>
 
         <p className="share-modal-tip">
-          📱 <strong>长按图片</strong> → 保存到相册
+          📱 <strong>长按图片</strong> → 选「保存到相册」
         </p>
 
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="share-modal-img" src={dataUrl} alt="分享卡片" />
 
-        {onDownload && (
+        <div className="share-modal-actions">
           <button
-            className="share-modal-download"
             type="button"
-            onClick={onDownload}
+            className="share-modal-action"
+            onClick={openInNewTab}
           >
-            <Download size={14} aria-hidden /> 下载到电脑
+            <ExternalLink size={14} aria-hidden /> 新标签打开
           </button>
-        )}
+          {onDownload && (
+            <button
+              type="button"
+              className="share-modal-action"
+              onClick={onDownload}
+            >
+              <Download size={14} aria-hidden /> 下载
+            </button>
+          )}
+        </div>
+
+        <p className="share-modal-fineprint">
+          长按不行？试试上面两个按钮，或直接截屏。
+        </p>
       </div>
     </div>
   );
