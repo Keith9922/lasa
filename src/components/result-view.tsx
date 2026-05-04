@@ -9,6 +9,11 @@ import { inlineImages, freezeTransform } from "@/lib/snapshot";
 import { PoopCard } from "./poop-card";
 import { NutritionRing } from "./nutrition-ring";
 import { AchievementOverlay } from "./achievement-overlay";
+import { ShareModal } from "./share-modal";
+
+const isMobileUA = () =>
+  typeof navigator !== "undefined" &&
+  /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 type Props = {
   prediction: Prediction;
@@ -21,78 +26,90 @@ type Props = {
 export function ResultView({ prediction, roast, achievement, onReset, onToast }: Props) {
   const [whyOpen, setWhyOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [shareImage, setShareImage] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
+
+  const triggerDownload = (dataUrl: string) => {
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `lasa-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   const handleShare = async () => {
     const node = cardRef.current;
     if (!node || sharing) return;
     setSharing(true);
 
-    // 1) 预烤所有 <img>（含 CSS filter）→ 内联 data URL，绕开 iOS 的 foreignObject 丢图 bug
-    // 2) 截图期间临时去掉 polaroid 的 rotate(-1deg)，避免桌面端 bounding box 错位
+    // 1) 预烤 <img>（含 CSS filter）→ 内联 data URL，绕开 iOS foreignObject 丢图
+    // 2) 临时去掉 polaroid rotate(-1deg)，避免桌面端 bounding box 错位
     const restoreImages = await inlineImages(node);
     const restoreTransform = freezeTransform(node);
+    let dataUrl = "";
     try {
-      const dataUrl = await domToPng(node, {
-        scale: 2,
-        backgroundColor: "transparent",
-      });
-
-      // 尝试 Web Share API（移动端原生分享，iOS 14.5+ / Android Chrome 75+）
-      const shareCapable = typeof navigator !== "undefined" && typeof navigator.canShare === "function";
-      if (shareCapable) {
-        try {
-          const blob = await (await fetch(dataUrl)).blob();
-          const file = new File([blob], `lasa-${Date.now()}.png`, { type: "image/png" });
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: "拉啥 — 我的便便预测",
-              text: roast,
-            });
-            onToast("已分享 ✓");
-            return;
-          }
-        } catch (err) {
-          // 用户取消 share 不是错误，静默退到下载
-          if ((err as DOMException)?.name === "AbortError") {
-            onToast("已取消");
-            return;
-          }
-          // 其他错误：退到下载
-        }
-      }
-
-      // 桌面 / 不支持原生分享：下载图片
-      // iOS Safari 不支持 <a download>，需要新窗口打开 data URL 让用户长按保存
-      const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent);
-      if (isIOS && !shareCapable) {
-        // 极端情况：iOS 老版本不支持 share API。新窗口展示让用户长按保存
-        const win = window.open();
-        if (win) {
-          win.document.write(`<img src="${dataUrl}" style="max-width:100%" />`);
-          onToast("长按图片保存到相册");
-        } else {
-          onToast("请允许弹窗后重试");
-        }
-        return;
-      }
-
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `lasa-${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      onToast("已保存到本地 ✓");
+      dataUrl = await domToPng(node, { scale: 2, backgroundColor: "transparent" });
     } catch (err) {
-      console.error("[share] failed", err);
-      onToast("分享失败，截屏试试");
+      console.error("[share] capture failed", err);
+      onToast("截图失败，截屏试试");
+      setSharing(false);
+      return;
     } finally {
       restoreTransform();
       restoreImages();
-      setSharing(false);
     }
+
+    // 优先 Web Share API（iOS Safari / 部分 Android Chrome 支持文件分享）
+    const canShareFiles =
+      typeof navigator !== "undefined" &&
+      typeof navigator.canShare === "function" &&
+      typeof navigator.share === "function";
+
+    if (canShareFiles) {
+      try {
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], `lasa-${Date.now()}.png`, { type: "image/png" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: "拉啥 — 我的便便预测",
+            text: roast,
+          });
+          onToast("已分享 ✓");
+          setSharing(false);
+          return;
+        }
+      } catch (err) {
+        // 用户取消（AbortError）静默退出，不弹兜底 modal
+        if ((err as DOMException)?.name === "AbortError") {
+          setSharing(false);
+          return;
+        }
+        // 其他错误：继续走 modal 兜底
+        console.warn("[share] webshare failed, fallback to modal", err);
+      }
+    }
+
+    // 桌面端：直接 a download；失败时用户能从 modal 长按 / 右键另存
+    if (!isMobileUA()) {
+      try {
+        triggerDownload(dataUrl);
+        onToast("已保存到本地 ✓");
+        // 同时弹 modal 作为可复盘的确认（包含图片预览，桌面也实用）
+        setShareImage(dataUrl);
+        setSharing(false);
+        return;
+      } catch (err) {
+        console.warn("[share] anchor download failed", err);
+      }
+    }
+
+    // 手机其他场景（夸克 / UC / QQ / 微信内 / Android Chrome 不支持 file share）
+    // → 弹 modal 让用户长按图片保存到相册
+    setShareImage(dataUrl);
+    onToast("长按图片保存");
+    setSharing(false);
   };
 
   return (
@@ -148,6 +165,12 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
       </div>
 
       <p className="disclaimer">仅供娱乐 · 不构成医学建议</p>
+
+      <ShareModal
+        dataUrl={shareImage}
+        onClose={() => setShareImage(null)}
+        onDownload={shareImage ? () => triggerDownload(shareImage) : undefined}
+      />
     </div>
   );
 }
