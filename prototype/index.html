@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>💩 拉啥 — 低保真原型 v0.1</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --poo-50:#FFF8E7;
+    --poo-100:#F5E6C8;
+    --poo-300:#D4A574;
+    --poo-500:#8B5A2B;
+    --poo-700:#5C3A1D;
+    --accent:#F5C842;
+    --hot:#E76F51;
+  }
+  body{background:#EDE6D6;font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft Yahei",system-ui,sans-serif;color:var(--poo-700)}
+  .phone{width:375px;height:812px;background:var(--poo-50);border-radius:42px;box-shadow:0 30px 60px -20px rgba(0,0,0,.25),0 0 0 12px #1a1a1a,0 0 0 14px #333;overflow:hidden;position:relative}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:140px;height:28px;background:#1a1a1a;border-bottom-left-radius:18px;border-bottom-right-radius:18px;z-index:50}
+  .scroll{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .tab-btn[data-active="true"]{background:var(--poo-500);color:#FFF8E7}
+  .tab-btn[data-active="false"]{background:transparent;color:var(--poo-500)}
+  .food-card{transition:all .15s ease}
+  .food-card:active{transform:scale(.95)}
+  .food-card[data-selected="true"]{background:var(--accent);border-color:var(--poo-500)}
+  .pulse-btn{animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+  .ring-conic{background:conic-gradient(#F5C842 0% 45%,#E76F51 45% 70%,#8B5A2B 70% 100%)}
+  .stink{position:absolute;font-size:18px;animation:stink 2.5s ease-in-out infinite;opacity:.7}
+  @keyframes stink{0%{transform:translateY(0) rotate(-5deg);opacity:0}20%{opacity:.8}100%{transform:translateY(-40px) rotate(15deg);opacity:0}}
+  .label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#9b8763}
+</style>
+</head>
+<body class="min-h-screen p-6 lg:p-10">
+
+<header class="max-w-7xl mx-auto mb-8">
+  <div class="flex items-center gap-3 mb-2">
+    <span class="text-3xl">💩</span>
+    <h1 class="text-2xl font-bold" style="color:var(--poo-700)">拉啥 · 低保真原型 v0.1</h1>
+  </div>
+  <p class="text-sm" style="color:var(--poo-500)">三屏并排展示。Tab 可切换、卡片可点选，便于体验交互节奏。最终样式还会再美化。</p>
+</header>
+
+<main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8 place-items-center">
+
+<!-- ============== 屏 1：首屏 · 快捷选择 Tab ============== -->
+<section class="flex flex-col items-center gap-3">
+  <div class="label">屏 1 · 快捷选择</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="scroll p-5 pt-12">
+      <!-- Brand -->
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">💩</span>
+          <span class="font-bold text-lg" style="color:var(--poo-700)">拉啥</span>
+        </div>
+        <button class="text-xs px-3 py-1.5 rounded-full" style="background:var(--poo-100);color:var(--poo-500)">？怎么玩</button>
+      </div>
+
+      <!-- Hero -->
+      <div class="mb-5">
+        <h2 class="text-2xl font-extrabold leading-tight" style="color:var(--poo-700)">今天吃了啥？</h2>
+        <p class="text-sm mt-1" style="color:var(--poo-500)">告诉我，我猜你明天拉啥 🔮</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex p-1 rounded-full mb-4" style="background:var(--poo-100)">
+        <button class="tab-btn flex-1 py-2 rounded-full text-sm font-semibold" data-tab="quick" data-active="true">🍱 快捷选择</button>
+        <button class="tab-btn flex-1 py-2 rounded-full text-sm font-semibold" data-tab="text" data-active="false">✍️ 描述一下</button>
+      </div>
+
+      <!-- Quick tab content -->
+      <div data-pane="quick">
+        <div class="text-xs mb-2" style="color:var(--poo-500)">点一下加进今日摄入，再点调份量</div>
+        <div class="grid grid-cols-3 gap-2.5 mb-4">
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="true">
+            <span class="text-3xl">🍲</span>
+            <span class="text-xs font-bold">火锅</span>
+            <span class="text-[10px]" style="color:var(--hot)">×1 适中</span>
+          </button>
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="false">
+            <span class="text-3xl">🍖</span><span class="text-xs font-bold">烧烤</span>
+          </button>
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="true">
+            <span class="text-3xl">🧋</span>
+            <span class="text-xs font-bold">奶茶</span>
+            <span class="text-[10px]" style="color:var(--hot)">×2 暴食</span>
+          </button>
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="false">
+            <span class="text-3xl">🍔</span><span class="text-xs font-bold">汉堡</span>
+          </button>
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="false">
+            <span class="text-3xl">🍣</span><span class="text-xs font-bold">寿司</span>
+          </button>
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="false">
+            <span class="text-3xl">🥗</span><span class="text-xs font-bold">沙拉</span>
+          </button>
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="false">
+            <span class="text-3xl">🍕</span><span class="text-xs font-bold">披萨</span>
+          </button>
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="false">
+            <span class="text-3xl">🍜</span><span class="text-xs font-bold">面条</span>
+          </button>
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="false">
+            <span class="text-3xl">🍳</span><span class="text-xs font-bold">早餐</span>
+          </button>
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="false">
+            <span class="text-3xl">🍟</span><span class="text-xs font-bold">炸鸡</span>
+          </button>
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="false">
+            <span class="text-3xl">🍰</span><span class="text-xs font-bold">蛋糕</span>
+          </button>
+          <button class="food-card border-2 border-transparent rounded-2xl p-3 bg-white flex flex-col items-center gap-1" data-selected="false" style="background:var(--poo-100);color:var(--poo-500)">
+            <span class="text-3xl">＋</span><span class="text-xs font-bold">更多</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Text tab content (hidden by default) -->
+      <div data-pane="text" class="hidden">
+        <div class="text-xs mb-2" style="color:var(--poo-500)">越详细越准。可以写菜名、份量、做法</div>
+        <textarea class="w-full h-40 p-3 rounded-2xl bg-white border border-transparent text-sm" placeholder="例如：中午吃火锅吃了两盘羊肉、一盘青菜，是清汤锅，喝了两杯啤酒……"></textarea>
+        <button class="w-full mt-2 py-2.5 rounded-full text-sm font-semibold" style="background:var(--poo-100);color:var(--poo-500)">✨ AI 解析（MiniMax）</button>
+        <div class="mt-3 p-3 rounded-2xl bg-white">
+          <div class="text-[11px] mb-1.5" style="color:var(--poo-500)">解析结果</div>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="text-xs px-2 py-1 rounded-full" style="background:var(--poo-100)">羊肉 · 400g</span>
+            <span class="text-xs px-2 py-1 rounded-full" style="background:var(--poo-100)">青菜 · 200g</span>
+            <span class="text-xs px-2 py-1 rounded-full" style="background:var(--poo-100)">啤酒 · 660ml</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cart strip (shared) -->
+      <div class="mt-2 p-3 rounded-2xl" style="background:var(--poo-100)">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[11px] font-semibold" style="color:var(--poo-500)">🍴 今日摄入 · 已加 3 项</span>
+          <button class="text-[11px]" style="color:var(--hot)">清空</button>
+        </div>
+        <div class="text-xs" style="color:var(--poo-700)">🍲 火锅 · 🧋 奶茶×2 · 🥬 青菜 200g</div>
+      </div>
+
+      <!-- CTA -->
+      <button class="pulse-btn w-full mt-4 py-4 rounded-2xl text-white font-extrabold text-lg shadow-lg" style="background:var(--poo-500);box-shadow:0 8px 20px -4px rgba(139,90,43,.5)">
+        💩 开 拉 ！
+      </button>
+      <p class="text-center text-[10px] mt-2" style="color:var(--poo-300)">仅供娱乐 · 不构成医学建议</p>
+
+      <div class="h-4"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 屏 2：首屏 · 描述输入 Tab ============== -->
+<section class="flex flex-col items-center gap-3">
+  <div class="label">屏 2 · 描述一下（同一页面，Tab 切换）</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="scroll p-5 pt-12">
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">💩</span>
+          <span class="font-bold text-lg" style="color:var(--poo-700)">拉啥</span>
+        </div>
+        <button class="text-xs px-3 py-1.5 rounded-full" style="background:var(--poo-100);color:var(--poo-500)">？怎么玩</button>
+      </div>
+
+      <div class="mb-5">
+        <h2 class="text-2xl font-extrabold leading-tight" style="color:var(--poo-700)">今天吃了啥？</h2>
+        <p class="text-sm mt-1" style="color:var(--poo-500)">告诉我，我猜你明天拉啥 🔮</p>
+      </div>
+
+      <div class="flex p-1 rounded-full mb-4" style="background:var(--poo-100)">
+        <button class="flex-1 py-2 rounded-full text-sm font-semibold" style="color:var(--poo-500)">🍱 快捷选择</button>
+        <button class="flex-1 py-2 rounded-full text-sm font-semibold" style="background:var(--poo-500);color:#FFF8E7">✍️ 描述一下</button>
+      </div>
+
+      <div class="text-xs mb-2" style="color:var(--poo-500)">越详细越准。可以写菜名、份量、做法</div>
+      <textarea class="w-full h-44 p-3 rounded-2xl bg-white border-2 text-sm" style="border-color:var(--poo-300)" placeholder="例如：中午吃火锅吃了两盘羊肉、一盘青菜，是清汤锅，喝了两杯啤酒……">中午吃火锅吃了两盘肥牛、一盘羊肉、一盘青菜，喝了一瓶可乐和半瓶啤酒，最后还来了一份红糖糍粑。</textarea>
+
+      <button class="w-full mt-2 py-2.5 rounded-full text-sm font-semibold flex items-center justify-center gap-1.5" style="background:var(--accent);color:var(--poo-700)">
+        <span>✨</span> AI 解析中… <span class="text-xs opacity-60">MiniMax</span>
+      </button>
+
+      <div class="mt-3 p-3 rounded-2xl bg-white">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[11px] font-semibold" style="color:var(--poo-500)">解析结果（可点击修改份量）</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded" style="background:var(--poo-100);color:var(--poo-500)">AI 估算</span>
+        </div>
+        <div class="space-y-1.5">
+          <div class="flex justify-between items-center text-xs"><span>🥩 肥牛</span><span style="color:var(--poo-500)">400g</span></div>
+          <div class="flex justify-between items-center text-xs"><span>🐑 羊肉</span><span style="color:var(--poo-500)">200g</span></div>
+          <div class="flex justify-between items-center text-xs"><span>🥬 青菜</span><span style="color:var(--poo-500)">150g</span></div>
+          <div class="flex justify-between items-center text-xs"><span>🥤 可乐</span><span style="color:var(--poo-500)">330ml</span></div>
+          <div class="flex justify-between items-center text-xs"><span>🍺 啤酒</span><span style="color:var(--poo-500)">300ml</span></div>
+          <div class="flex justify-between items-center text-xs"><span>🍡 红糖糍粑</span><span style="color:var(--poo-500)">120g</span></div>
+        </div>
+        <button class="mt-2 text-[11px] underline" style="color:var(--poo-500)">＋ 还吃了别的</button>
+      </div>
+
+      <!-- 同样的 CTA -->
+      <button class="pulse-btn w-full mt-4 py-4 rounded-2xl text-white font-extrabold text-lg shadow-lg" style="background:var(--poo-500);box-shadow:0 8px 20px -4px rgba(139,90,43,.5)">
+        💩 开 拉 ！
+      </button>
+      <p class="text-center text-[10px] mt-2" style="color:var(--poo-300)">仅供娱乐 · 不构成医学建议</p>
+
+      <div class="h-4"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 屏 3：结果页 ============== -->
+<section class="flex flex-col items-center gap-3">
+  <div class="label">屏 3 · 抽卡结果</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="scroll p-5 pt-12" style="background:linear-gradient(180deg,var(--poo-50) 0%,#F5E6C8 100%)">
+
+      <div class="flex items-center justify-between mb-4">
+        <button class="text-sm" style="color:var(--poo-500)">← 再来一顿</button>
+        <span class="text-xs" style="color:var(--poo-500)">2026-05-04 12:30</span>
+      </div>
+
+      <h2 class="text-xl font-extrabold text-center mb-1" style="color:var(--poo-700)">你 明 天 大 概 会 拉 出</h2>
+      <p class="text-center text-xs mb-4" style="color:var(--poo-500)">滑动查看背面 · 长按保存图片</p>
+
+      <!-- 主卡片 -->
+      <div class="rounded-3xl p-5 shadow-2xl relative overflow-hidden" style="background:linear-gradient(160deg,#FFF8E7 0%,#F5C842 100%);border:3px solid var(--poo-500)">
+        <!-- 臭气 -->
+        <span class="stink" style="left:30%;top:20px;animation-delay:0s">〰️</span>
+        <span class="stink" style="left:50%;top:30px;animation-delay:.6s">〰️</span>
+        <span class="stink" style="left:65%;top:25px;animation-delay:1.2s">〰️</span>
+
+        <!-- Bristol 编号 -->
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[10px] font-semibold" style="color:var(--poo-500)">BRISTOL TYPE</div>
+            <div class="text-4xl font-black" style="color:var(--hot)">6</div>
+            <div class="text-xs font-bold" style="color:var(--poo-700)">糊状·边缘毛糙</div>
+          </div>
+          <div class="text-7xl">💩</div>
+        </div>
+
+        <!-- 属性 chips -->
+        <div class="flex flex-wrap gap-1.5 mt-3">
+          <span class="text-[11px] px-2 py-1 rounded-full bg-white">🟫 颜色 深棕</span>
+          <span class="text-[11px] px-2 py-1 rounded-full bg-white">💧 漂浮</span>
+          <span class="text-[11px] px-2 py-1 rounded-full bg-white">✨ 油亮</span>
+          <span class="text-[11px] px-2 py-1 rounded-full bg-white">💨 臭气 4/5</span>
+          <span class="text-[11px] px-2 py-1 rounded-full bg-white">📦 量 大</span>
+        </div>
+
+        <!-- LLM 吐槽 -->
+        <div class="mt-4 p-3 rounded-xl bg-white/70 backdrop-blur">
+          <div class="text-[10px] mb-1" style="color:var(--poo-500)">AI 吐槽</div>
+          <p class="text-sm font-medium leading-snug" style="color:var(--poo-700)">"两盘肥牛下肚还配可乐？兄弟，你明天的马桶要遭重了。建议提前备好厕纸三卷，并且不要看手机，专心拉。"</p>
+        </div>
+      </div>
+
+      <!-- 营养素三色环 + 卡路里 -->
+      <div class="mt-4 rounded-2xl bg-white p-4">
+        <div class="flex items-center gap-4">
+          <div class="relative w-20 h-20 flex-shrink-0">
+            <div class="absolute inset-0 rounded-full ring-conic"></div>
+            <div class="absolute inset-2 rounded-full bg-white flex flex-col items-center justify-center">
+              <div class="text-base font-black" style="color:var(--poo-700)">1820</div>
+              <div class="text-[9px]" style="color:var(--poo-500)">kcal</div>
+            </div>
+          </div>
+          <div class="flex-1 space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:#F5C842"></span>碳水</span>
+              <span class="font-semibold">45%</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:#E76F51"></span>蛋白质</span>
+              <span class="font-semibold">25%</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:#8B5A2B"></span>脂肪</span>
+              <span class="font-semibold">30%</span>
+            </div>
+            <div class="flex items-center justify-between text-xs pt-1 border-t" style="border-color:var(--poo-100);color:var(--poo-500)">
+              <span>🌾 纤维</span>
+              <span>仅 6g · 偏少</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 科学小课堂（卡片背面预览） -->
+      <details class="mt-3 rounded-2xl bg-white p-4">
+        <summary class="text-sm font-bold cursor-pointer" style="color:var(--poo-700)">🧪 为啥是这个结果？</summary>
+        <p class="mt-2 text-xs leading-relaxed" style="color:var(--poo-500)">
+          这一餐脂肪占比 30%，加上肥牛和糍粑都是高脂食物，未吸收的脂肪会让粪便油亮、漂浮（脂肪泻倾向）。纤维只有 6g 远低于推荐 25g，所以量虽然不少但缺乏成形结构 → Bristol Type 6。
+        </p>
+      </details>
+
+      <!-- Action -->
+      <div class="grid grid-cols-2 gap-2 mt-4">
+        <button class="py-3 rounded-2xl font-bold text-sm" style="background:var(--accent);color:var(--poo-700)">📤 分享给朋友</button>
+        <button class="py-3 rounded-2xl font-bold text-sm text-white" style="background:var(--poo-500)">🍽️ 再来一顿</button>
+      </div>
+
+      <p class="text-center text-[10px] mt-3" style="color:var(--poo-300)">仅供娱乐 · 不构成医学建议</p>
+      <div class="h-4"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="max-w-7xl mx-auto mt-12 text-center text-xs" style="color:var(--poo-500)">
+  💩 拉啥 · 原型 v0.1 · 用 Tailwind CDN 渲染。最终样式 / 动效会再调整。
+</footer>
+
+<script>
+  // 简单 Tab 切换
+  const tabs = document.querySelectorAll('[data-tab]');
+  tabs.forEach(t => t.addEventListener('click', () => {
+    const target = t.dataset.tab;
+    tabs.forEach(b => b.dataset.active = (b.dataset.tab === target).toString());
+    document.querySelectorAll('[data-pane]').forEach(p => {
+      p.classList.toggle('hidden', p.dataset.pane !== target);
+    });
+  }));
+  // 食物卡选中切换
+  document.querySelectorAll('.food-card').forEach(c => c.addEventListener('click', () => {
+    c.dataset.selected = c.dataset.selected === 'true' ? 'false' : 'true';
+  }));
+</script>
+</body>
+</html>

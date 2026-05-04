@@ -1,30 +1,29 @@
 {
-  "name": "stori",
-  "version": "0.2.0",
+  "name": "lasa",
+  "version": "0.1.0",
   "private": true,
+  "description": "拉啥 — 告诉我今天吃了啥，我猜你明天拉啥",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --max-warnings=0",
+    "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "jspdf": "^3.0.4",
-    "lucide-react": "^0.468.0",
-    "next": "^15.1.8",
+    "html-to-image": "^1.11.13",
+    "lucide-react": "^1.14.0",
+    "next": "^15.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zod": "^3.24.1"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.2.0",
-    "@eslint/js": "^9.17.0",
-    "@types/node": "^22.10.6",
-    "@types/react": "^19.0.4",
-    "@types/react-dom": "^19.0.2",
-    "eslint": "^9.17.0",
-    "eslint-config-next": "^15.1.8",
-    "typescript": "^5.7.2"
+    "@types/node": "^22.9.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.15.0",
+    "eslint-config-next": "^15.0.3",
+    "typescript": "^5.6.3"
   }
 }

@@ -1,100 +1,29 @@
-export type SkillCoverageStatus = "covered" | "weak" | "missing";
-export type StoryStatus = "draft" | "confirmed" | "needs-info";
-export type ChatRole = "assistant" | "user" | "system";
+/**
+ * 拉啥 共享类型
+ */
 
-export type ChatMessage = {
+import type { PortionLevel } from "./foods";
+
+/** 用户在快捷选择 / 描述解析后加入今日摄入的一项 */
+export type IntakeItem = {
+  /** 唯一 id；快捷选择 = preset food id；描述解析 = ai-{随机} */
   id: string;
-  role: ChatRole;
-  content: string;
-  createdAt: string;
-};
-
-export type EvidenceItem = {
-  id: string;
-  label: string;
-  value: string;
-  strength: "strong" | "medium" | "weak";
-};
-
-export type StoryCard = {
-  id: string;
-  title: string;
-  context: string;
-  role: string;
-  actions: string[];
-  result: string;
-  evidence: EvidenceItem[];
-  skills: string[];
-  followUps: string[];
-  status: StoryStatus;
-  sourceQuote: string;
-  createdAt: string;
-};
-
-export type JobRequirement = {
-  id: string;
-  label: string;
-  category: "hard-skill" | "soft-skill" | "domain" | "experience" | "responsibility";
-  priority: "must" | "should" | "nice";
-  coverage: SkillCoverageStatus;
-  evidenceStoryIds: string[];
-};
-
-export type JobAnalysis = {
-  id: string;
-  title: string;
-  company: string;
-  rawText: string;
-  summary: string;
-  keywords: string[];
-  requirements: JobRequirement[];
-  followUpQuestions: string[];
-  updatedAt: string;
-};
-
-export type ResumeExperience = {
-  id: string;
-  title: string;
-  organization: string;
-  period: string;
-  bullets: string[];
-  skills: string[];
-};
-
-export type ResumeData = {
+  emoji: string;
   name: string;
-  headline: string;
-  location: string;
-  email: string;
-  phone: string;
-  links: string[];
-  summary: string;
-  skills: string[];
-  experiences: ResumeExperience[];
-  education: string[];
-  notes: string[];
-  targetRole: string;
-  updatedAt: string;
+  /** 估算克数（已包含份量倍数）*/
+  grams: number;
+  /** 来源：preset = 快捷选择，ai = 文本解析；后期可用于显示徽章 */
+  source: "preset" | "ai";
+  /** 仅 preset 来源会有；ai 来源直接给克数 */
+  portion?: PortionLevel;
+  /** 估算的宏量营养素（已乘份量倍数） */
+  macros: {
+    kcal: number;
+    carbs: number;
+    fiber: number;
+    protein: number;
+    fat: number;
+  };
+  /** 标签集合，预测引擎用于规则匹配（high_fat / dairy / red_meat / leafy_green ...） */
+  tags: string[];
 };
-
-export type AppState = {
-  schemaVersion: 1;
-  messages: ChatMessage[];
-  stories: StoryCard[];
-  jobAnalysis: JobAnalysis | null;
-  resume: ResumeData;
-};
-
-export type CoachAction = "analyze-jd" | "extract-story" | "next-question" | "generate-resume";
-
-export type CoachRequest =
-  | { action: "analyze-jd"; jdText: string; stories: StoryCard[] }
-  | { action: "extract-story"; answer: string; stories: StoryCard[]; jobAnalysis: JobAnalysis | null }
-  | { action: "next-question"; stories: StoryCard[]; jobAnalysis: JobAnalysis | null }
-  | { action: "generate-resume"; stories: StoryCard[]; jobAnalysis: JobAnalysis | null; baseResume: ResumeData };
-
-export type CoachResponse =
-  | { action: "analyze-jd"; analysis: JobAnalysis; message: string; usedAI: boolean }
-  | { action: "extract-story"; stories: StoryCard[]; message: string; nextQuestion: string; usedAI: boolean }
-  | { action: "next-question"; question: string; usedAI: boolean }
-  | { action: "generate-resume"; resume: ResumeData; message: string; usedAI: boolean };

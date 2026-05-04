@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>💩 拉啥 · 出卡动效原型</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body{background:#EDE6D6;font-family:-apple-system,"PingFang SC","Microsoft Yahei",system-ui,sans-serif;color:#5C3A1D;margin:0}
+  .stage{width:100%;max-width:420px;margin:0 auto;height:100vh;position:relative;overflow:hidden;background:linear-gradient(180deg,#FFF8E7 0%,#F5E6C8 100%)}
+
+  /* 马桶 */
+  .toilet{position:absolute;left:50%;bottom:80px;transform:translate(-50%,200%);width:200px;height:180px;transition:transform .8s cubic-bezier(.34,1.56,.64,1)}
+  .toilet.in{transform:translate(-50%,0)}
+  .toilet svg{width:100%;height:100%;filter:drop-shadow(0 8px 16px rgba(0,0,0,.15))}
+
+  /* 屎 */
+  .poo{position:absolute;left:50%;top:-80px;transform:translate(-50%,0);width:80px;height:80px;opacity:0}
+  .poo.dropping{animation:drop 1.0s cubic-bezier(.55,.06,.68,.19) forwards;opacity:1}
+  @keyframes drop{
+    0%{top:-80px;transform:translate(-50%,0) scaleY(.7) scaleX(1.2)}
+    20%{transform:translate(-50%,0) scaleY(1.2) scaleX(.85)}
+    70%{top:calc(100% - 240px);transform:translate(-50%,0) scaleY(1.1) scaleX(.9)}
+    85%{top:calc(100% - 220px);transform:translate(-50%,0) scaleY(.6) scaleX(1.4)}
+    100%{top:calc(100% - 230px);transform:translate(-50%,0) scaleY(.8) scaleX(1.1);opacity:0}
+  }
+
+  /* 水花 */
+  .splash{position:absolute;left:50%;bottom:170px;transform:translateX(-50%);opacity:0;pointer-events:none}
+  .splash.go{animation:splash .6s ease-out forwards}
+  @keyframes splash{0%{opacity:0;transform:translateX(-50%) scale(.3)}40%{opacity:1}100%{opacity:0;transform:translateX(-50%) scale(2)}}
+
+  /* 屏幕震动 */
+  .stage.shake{animation:shake .35s ease-in-out}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+
+  /* 卡片 - 拍立得 */
+  .card{position:absolute;left:50%;bottom:140px;transform:translate(-50%,40%) rotate(-6deg);width:300px;background:#FFF;border-radius:14px;padding:14px 14px 24px;box-shadow:0 20px 40px -8px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:none}
+  .card.show{animation:print 1.2s cubic-bezier(.34,1.56,.64,1) forwards}
+  @keyframes print{
+    0%{transform:translate(-50%,80%) rotate(-12deg) scale(.85);opacity:0}
+    30%{opacity:1}
+    60%{transform:translate(-50%,-90%) rotate(4deg) scale(1.05);opacity:1}
+    80%{transform:translate(-50%,-110%) rotate(-2deg) scale(1)}
+    100%{transform:translate(-50%,-110%) rotate(0) scale(1);opacity:1}
+  }
+
+  .stink{font-size:18px;color:#8B5A2B;animation:stink 2.5s ease-in-out infinite;display:inline-block}
+  @keyframes stink{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(-6px);opacity:.9}}
+
+  /* 触发按钮 */
+  .start{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);background:#8B5A2B;color:#FFF8E7;font-weight:900;padding:14px 36px;border-radius:999px;font-size:18px;box-shadow:0 8px 20px -4px rgba(139,90,43,.5);border:none;cursor:pointer;letter-spacing:.2em;z-index:60}
+  .start.hide{opacity:0;pointer-events:none;transition:opacity .3s}
+
+  .reset{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.7);color:#8B5A2B;border:none;padding:6px 12px;border-radius:999px;font-size:12px;cursor:pointer;z-index:70;backdrop-filter:blur(8px)}
+
+  /* 控制器：选 Bristol type / 颜色 */
+  .controls{position:absolute;top:14px;left:14px;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);padding:10px;border-radius:14px;font-size:11px;z-index:70;width:160px}
+  .controls label{display:block;margin-bottom:4px;color:#8B5A2B;font-weight:600}
+  .controls select,.controls input{width:100%;padding:4px 6px;border-radius:6px;border:1px solid #D4A574;font-size:11px}
+  .controls > div{margin-bottom:8px}
+  .swatches{display:flex;gap:4px;flex-wrap:wrap}
+  .sw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent}
+  .sw.active{border-color:#5C3A1D}
+
+  /* 装饰水波纹 */
+  .ripple{position:absolute;left:50%;bottom:155px;transform:translateX(-50%);width:60px;height:60px;border:2px solid #8B5A2B;border-radius:50%;opacity:0;pointer-events:none}
+  .ripple.go{animation:ripple 1.2s ease-out forwards}
+  @keyframes ripple{0%{opacity:.6;transform:translateX(-50%) scale(.5)}100%{opacity:0;transform:translateX(-50%) scale(2.5)}}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <button class="reset" onclick="reset()">↻ 重放</button>
+
+  <!-- ⚠️ 调试控件 - 仅 demo 用，真实产品不会出现。让你切换不同 type/颜色看效果 -->
+  <div class="controls">
+    <div style="font-size:10px;color:#999;margin-bottom:4px">⚙️ DEMO 调试（上线时移除）</div>
+    <div>
+      <label>Bristol Type（形状）</label>
+      <select id="bristol" onchange="updatePreview()">
+        <option value="1">1 · 硬球</option>
+        <option value="2">2 · 凹凸香肠</option>
+        <option value="3">3 · 裂纹香肠</option>
+        <option value="4" selected>4 · 光滑香肠（理想）</option>
+        <option value="5">5 · 软团</option>
+        <option value="6">6 · 糊状</option>
+        <option value="7">7 · 水状</option>
+      </select>
+    </div>
+    <div>
+      <label>颜色（写实色）</label>
+      <div class="swatches" id="swatches">
+        <div class="sw active" style="background:#6F4E37" data-color="#6F4E37" data-name="健康棕"></div>
+        <div class="sw" style="background:#3E2723" data-color="#3E2723" data-name="深褐（红肉）"></div>
+        <div class="sw" style="background:#A0834C" data-color="#A0834C" data-name="黄褐（脂肪偏多）"></div>
+        <div class="sw" style="background:#C4B089" data-color="#C4B089" data-name="灰白（脂肪过多）"></div>
+        <div class="sw" style="background:#5A5E2E" data-color="#5A5E2E" data-name="绿褐（绿叶多）"></div>
+        <div class="sw" style="background:#5C3025" data-color="#5C3025" data-name="暗红褐（甜菜）"></div>
+        <div class="sw" style="background:#1F1410" data-color="#1F1410" data-name="黑褐（铁/蓝莓）"></div>
+      </div>
+    </div>
+    <div>
+      <label><input type="checkbox" id="greasy" onchange="updatePreview()"> 油亮（脂肪多）</label>
+    </div>
+  </div>
+
+  <!-- 屎（动画用） -->
+  <div class="poo" id="poo">
+    <svg viewBox="0 0 100 100" id="pooSvg">
+      <ellipse cx="50" cy="50" rx="35" ry="35" fill="#8B5A2B"/>
+    </svg>
+  </div>
+
+  <!-- 水花 -->
+  <svg class="splash" id="splash" width="120" height="60" viewBox="0 0 120 60">
+    <path d="M10 50 Q15 20 25 35 M30 55 Q40 15 45 40 M55 50 Q60 10 65 30 M75 55 Q85 20 90 40 M95 50 Q105 25 110 45" stroke="#8B5A2B" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </svg>
+  <div class="ripple" id="ripple"></div>
+
+  <!-- 马桶 -->
+  <div class="toilet" id="toilet">
+    <svg viewBox="0 0 200 180">
+      <!-- 马桶水箱 -->
+      <rect x="40" y="10" width="120" height="60" rx="8" fill="#FFF" stroke="#8B5A2B" stroke-width="4"/>
+      <rect x="80" y="22" width="40" height="6" rx="3" fill="#D4A574"/>
+      <!-- 马桶座 -->
+      <ellipse cx="100" cy="100" rx="80" ry="20" fill="#FFF" stroke="#8B5A2B" stroke-width="4"/>
+      <!-- 马桶碗体 -->
+      <path d="M30 100 Q40 170 100 170 Q160 170 170 100 Z" fill="#FFF" stroke="#8B5A2B" stroke-width="4"/>
+      <!-- 水面 -->
+      <ellipse cx="100" cy="115" rx="60" ry="12" fill="#B3E5FC"/>
+      <ellipse cx="100" cy="115" rx="60" ry="12" fill="none" stroke="#0288D1" stroke-width="2" opacity=".3"/>
+    </svg>
+  </div>
+
+  <!-- 拍立得卡片 -->
+  <div class="card" id="card">
+    <div style="position:relative;background:linear-gradient(160deg,#FFF8E7,#F5C842);border-radius:8px;padding:14px;height:200px;display:flex;flex-direction:column;justify-content:space-between">
+      <!-- 臭气 -->
+      <div style="position:absolute;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:8px">
+        <span class="stink" style="animation-delay:0s">〰️</span>
+        <span class="stink" style="animation-delay:.5s">〰️</span>
+        <span class="stink" style="animation-delay:1s">〰️</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:9px;color:#8B5A2B;font-weight:600">BRISTOL TYPE</div>
+          <div style="font-size:32px;font-weight:900;color:#E76F51;line-height:1" id="cardNum">4</div>
+          <div style="font-size:11px;font-weight:700;color:#5C3A1D" id="cardLabel">光滑香肠</div>
+        </div>
+        <!-- 参数化💩 SVG -->
+        <svg id="cardPoo" width="100" height="100" viewBox="0 0 100 100"></svg>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        <span style="font-size:10px;padding:3px 8px;border-radius:999px;background:#FFF" id="chipColor">🟫 正常棕</span>
+        <span style="font-size:10px;padding:3px 8px;border-radius:999px;background:#FFF" id="chipFat">✨ 油亮</span>
+        <span style="font-size:10px;padding:3px 8px;border-radius:999px;background:#FFF">💨 4/5</span>
+      </div>
+    </div>
+    <div style="text-align:center;font-family:'Courier New',monospace;font-size:11px;color:#8B5A2B;margin-top:8px">— 2026.05.04 · 拉啥 LASA —</div>
+  </div>
+
+  <button class="start" id="startBtn" onclick="play()">💩 开 拉 ！</button>
+</div>
+
+<script>
+  // ======== 参数化💩 SVG 生成器 ========
+  // 根据 Bristol Type + 颜色 + 油亮 生成不同形态的便便
+  const BRISTOL_LABELS = {
+    1: ['硬球','一颗颗硬球'],
+    2: ['凹凸香肠','凹凸不平'],
+    3: ['裂纹香肠','表面有裂痕'],
+    4: ['光滑香肠','光滑柔软'],
+    5: ['软团','软软的团块'],
+    6: ['糊状','糊状毛糙'],
+    7: ['水状','完全水样']
+  };
+
+  function darken(hex, amt=0.2){
+    const n = parseInt(hex.slice(1),16);
+    const r = Math.max(0, ((n>>16)&255) - 255*amt);
+    const g = Math.max(0, ((n>>8)&255) - 255*amt);
+    const b = Math.max(0, (n&255) - 255*amt);
+    return `rgb(${r|0},${g|0},${b|0})`;
+  }
+
+  function renderPoo(svg, type, color, greasy){
+    const dark = darken(color, 0.25);
+    const highlight = greasy
+      ? `<ellipse cx="38" cy="32" rx="14" ry="6" fill="#FFF" opacity=".55"/><ellipse cx="60" cy="38" rx="6" ry="3" fill="#FFF" opacity=".4"/>`
+      : `<ellipse cx="38" cy="32" rx="10" ry="4" fill="#FFF" opacity=".25"/>`;
+    let body = '';
+    switch(+type){
+      case 1: // 硬球：3-4 颗小球
+        body = `
+          <circle cx="32" cy="55" r="14" fill="${color}" stroke="${dark}" stroke-width="2"/>
+          <circle cx="55" cy="62" r="13" fill="${color}" stroke="${dark}" stroke-width="2"/>
+          <circle cx="75" cy="56" r="12" fill="${color}" stroke="${dark}" stroke-width="2"/>
+          <circle cx="48" cy="42" r="10" fill="${color}" stroke="${dark}" stroke-width="2"/>
+        `;
+        break;
+      case 2: // 凹凸香肠
+        body = `
+          <path d="M15 60 Q20 40 35 45 Q45 30 55 45 Q70 38 80 50 Q92 55 88 70 Q80 80 60 75 Q40 82 25 75 Q10 70 15 60 Z"
+            fill="${color}" stroke="${dark}" stroke-width="2.5"/>
+          ${highlight}
+        `;
+        break;
+      case 3: // 裂纹香肠
+        body = `
+          <ellipse cx="50" cy="58" rx="38" ry="22" fill="${color}" stroke="${dark}" stroke-width="2.5"/>
+          <path d="M25 55 Q40 60 55 53 M30 65 Q45 70 65 63 M40 50 Q55 47 70 52" stroke="${dark}" stroke-width="1.5" fill="none" opacity=".7"/>
+          ${highlight}
+        `;
+        break;
+      case 4: // 光滑香肠（带卷曲）
+        body = `
+          <path d="M20 70 Q15 50 30 45 Q40 40 50 45 Q60 25 75 35 Q90 45 80 60 Q85 75 70 78 Q50 85 35 78 Q20 80 20 70 Z"
+            fill="${color}" stroke="${dark}" stroke-width="2.5"/>
+          ${highlight}
+        `;
+        break;
+      case 5: // 软团
+        body = `
+          <ellipse cx="30" cy="60" rx="14" ry="11" fill="${color}" stroke="${dark}" stroke-width="2"/>
+          <ellipse cx="55" cy="55" rx="16" ry="13" fill="${color}" stroke="${dark}" stroke-width="2"/>
+          <ellipse cx="78" cy="62" rx="12" ry="10" fill="${color}" stroke="${dark}" stroke-width="2"/>
+          ${highlight}
+        `;
+        break;
+      case 6: // 糊状
+        body = `
+          <path d="M15 60 Q10 75 25 78 Q40 88 55 80 Q72 88 85 78 Q92 70 88 60 Q80 48 70 55 Q55 45 45 55 Q30 48 22 55 Q15 55 15 60 Z"
+            fill="${color}" stroke="${dark}" stroke-width="2" opacity=".9"/>
+          <path d="M30 70 L35 75 M50 72 L55 78 M70 70 L74 75" stroke="${dark}" stroke-width="1.5" opacity=".5"/>
+          ${highlight}
+        `;
+        break;
+      case 7: // 水状（一摊）
+        body = `
+          <ellipse cx="50" cy="72" rx="42" ry="14" fill="${color}" opacity=".7"/>
+          <ellipse cx="50" cy="70" rx="35" ry="10" fill="${color}" opacity=".5"/>
+          <ellipse cx="50" cy="68" rx="42" ry="14" fill="none" stroke="${dark}" stroke-width="2" opacity=".4"/>
+          <circle cx="20" cy="65" r="3" fill="${color}" opacity=".7"/>
+          <circle cx="82" cy="60" r="2.5" fill="${color}" opacity=".7"/>
+        `;
+        break;
+    }
+    svg.innerHTML = body;
+  }
+
+  // ======== 控件 ========
+  let currentColor = '#8B5A2B';
+  let currentColorName = '正常棕';
+  document.querySelectorAll('.sw').forEach(s => {
+    s.addEventListener('click', () => {
+      document.querySelectorAll('.sw').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+      currentColor = s.dataset.color;
+      currentColorName = s.dataset.name;
+      updatePreview();
+    });
+  });
+
+  function updatePreview(){
+    const t = +document.getElementById('bristol').value;
+    const greasy = document.getElementById('greasy').checked;
+    renderPoo(document.getElementById('pooSvg'), t, currentColor, greasy);
+    renderPoo(document.getElementById('cardPoo'), t, currentColor, greasy);
+    document.getElementById('cardNum').textContent = t;
+    document.getElementById('cardLabel').textContent = BRISTOL_LABELS[t][0];
+    document.getElementById('chipColor').textContent = `🎨 ${currentColorName}`;
+    document.getElementById('chipFat').textContent = greasy ? '✨ 油亮（脂肪多）' : '✓ 不油';
+  }
+
+  // ======== 动画播放 ========
+  function play(){
+    const stage = document.getElementById('stage');
+    const btn = document.getElementById('startBtn');
+    btn.classList.add('hide');
+    stage.classList.add('shake');
+    setTimeout(() => stage.classList.remove('shake'), 350);
+
+    // 1. 马桶升起
+    setTimeout(() => document.getElementById('toilet').classList.add('in'), 200);
+
+    // 2. 屎掉落
+    setTimeout(() => {
+      document.getElementById('poo').classList.add('dropping');
+    }, 1100);
+
+    // 3. 落水水花 + 涟漪
+    setTimeout(() => {
+      document.getElementById('splash').classList.add('go');
+      document.getElementById('ripple').classList.add('go');
+    }, 1900);
+
+    // 4. 卡片打印
+    setTimeout(() => document.getElementById('card').classList.add('show'), 2400);
+  }
+
+  function reset(){
+    document.getElementById('toilet').classList.remove('in');
+    document.getElementById('poo').classList.remove('dropping');
+    document.getElementById('splash').classList.remove('go');
+    document.getElementById('ripple').classList.remove('go');
+    document.getElementById('card').classList.remove('show');
+    document.getElementById('startBtn').classList.remove('hide');
+  }
+
+  // 初始化
+  updatePreview();
+</script>
+</body>
+</html>
