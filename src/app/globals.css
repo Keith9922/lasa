@@ -534,6 +534,56 @@ img { display: block; max-width: 100%; }
   padding-top: 4px;
 }
 
+.parse-success {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: linear-gradient(110deg, #E8F5E0, #F2F9EA);
+  border: 1px solid #B7DC8E;
+  margin-top: 10px;
+  animation: success-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes success-in {
+  0% { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.parse-success-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--good);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.parse-success-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.parse-success-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2D4A1E;
+}
+
+.parse-success-list {
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.5;
+  word-break: break-all;
+}
+
 /* ===== Intake ===== */
 .intake {
   padding: var(--sp-4);
@@ -724,14 +774,14 @@ img { display: block; max-width: 100%; }
   bottom: 30px;
   left: 50%;
   transform: translate(-50%, 200%);
-  width: 300px;
+  width: 340px;
   height: auto;
-  transition: transform 0.85s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
   filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.22));
 }
 
 @media (min-width: 768px) {
-  .toilet { width: 360px; }
+  .toilet { width: 420px; }
 }
 
 .toilet[data-in="true"] {
@@ -743,33 +793,49 @@ img { display: block; max-width: 100%; }
   left: 50%;
   top: -120px;
   transform: translate(-50%, 0);
-  width: 110px;
-  height: 110px;
+  width: 120px;
+  height: 120px;
   opacity: 0;
 }
 
 .poo-falling[data-drop="true"] {
-  animation: drop 1.05s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
+  animation: drop 0.95s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
 }
 
+/* 落点 = 马桶水面位置：bottom 175px = (toilet bottom 30 + ~145 from PNG bottom up to water surface) */
 @keyframes drop {
   0%   { top: -120px; transform: translate(-50%, 0) scaleY(0.7) scaleX(1.2); opacity: 1; }
   20%  {              transform: translate(-50%, 0) scaleY(1.2) scaleX(0.85); opacity: 1; }
-  70%  { top: calc(100% - 290px); transform: translate(-50%, 0) scaleY(1.05) scaleX(0.9); opacity: 1; }
-  85%  { top: calc(100% - 270px); transform: translate(-50%, 0) scaleY(0.55) scaleX(1.5); opacity: 0.55; }
-  100% { top: calc(100% - 285px); transform: translate(-50%, 0) scaleY(0.8) scaleX(1.1); opacity: 0; }
+  72%  { top: calc(100% - 320px); transform: translate(-50%, 0) scaleY(1.05) scaleX(0.9); opacity: 1; }
+  86%  { top: calc(100% - 295px); transform: translate(-50%, 0) scaleY(0.5) scaleX(1.55); opacity: 0.5; }
+  100% { top: calc(100% - 310px); transform: translate(-50%, 0) scaleY(0.8) scaleX(1.1); opacity: 0; }
+}
+
+@media (min-width: 768px) {
+  @keyframes drop {
+    0%   { top: -120px; transform: translate(-50%, 0) scaleY(0.7) scaleX(1.2); opacity: 1; }
+    20%  {              transform: translate(-50%, 0) scaleY(1.2) scaleX(0.85); opacity: 1; }
+    72%  { top: calc(100% - 380px); transform: translate(-50%, 0) scaleY(1.05) scaleX(0.9); opacity: 1; }
+    86%  { top: calc(100% - 355px); transform: translate(-50%, 0) scaleY(0.5) scaleX(1.55); opacity: 0.5; }
+    100% { top: calc(100% - 370px); transform: translate(-50%, 0) scaleY(0.8) scaleX(1.1); opacity: 0; }
+  }
+  .poo-falling { width: 140px; height: 140px; }
 }
 
 /* ======== 水花层（多层叠加：水珠 + 皇冠 + 双涟漪）======== */
 .splash-layer {
   position: absolute;
   left: 50%;
-  bottom: 215px;
-  width: 220px;
+  bottom: 175px;
+  width: 240px;
   height: 220px;
   transform: translate(-50%, 0);
   opacity: 0;
   pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .splash-layer { bottom: 215px; }
 }
 
 .splash-layer[data-go="true"] {

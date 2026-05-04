@@ -36,12 +36,13 @@ export function ToiletAnimation({ active, prediction, onComplete }: Props) {
       return () => clearTimeout(t);
     }
 
+    // 时序压缩到 ~2.6s，去掉马桶"傻坐等结果"的空白
     const t1 = setTimeout(() => setShake(true), 50);
-    const t2 = setTimeout(() => setToiletIn(true), 250);
-    const t3 = setTimeout(() => setShake(false), 450);
-    const t4 = setTimeout(() => setDrop(true), 1100);
-    const t5 = setTimeout(() => setSplash(true), 1900);
-    const t6 = setTimeout(onComplete, 3500);
+    const t2 = setTimeout(() => setToiletIn(true), 200);
+    const t3 = setTimeout(() => setShake(false), 380);
+    const t4 = setTimeout(() => setDrop(true), 750);
+    const t5 = setTimeout(() => setSplash(true), 1500);
+    const t6 = setTimeout(onComplete, 2600);
 
     return () => {
       [t1, t2, t3, t4, t5, t6].forEach(clearTimeout);

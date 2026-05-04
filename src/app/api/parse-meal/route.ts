@@ -15,6 +15,12 @@ export const runtime = "nodejs";
 
 const SYSTEM_PROMPT = `你是一个严谨的中文饮食解析器。把用户口语描述的一餐拆解成"可被代码消费"的结构化食物清单 + 宏量营养素估算。
 
+# 性能要求（重要）
+
+- **不要长篇思考**。读完用户输入后直接产出 JSON。
+- 拒绝"让我估算……再调整……"这类反复推敲，凭常识一次给出。
+- 思考过程应≤80 字。所有时间花在精度而非啰嗦。
+
 # 输出契约
 
 只输出一个 JSON 对象，不要任何 markdown、解释、寒暄、思考过程。结构必须严格如下：
@@ -134,10 +140,10 @@ export async function POST(req: Request) {
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: parsed.data.text },
       ],
-      temperature: 0.2,
+      temperature: 0.1,
       // M2.7 是 reasoning 模型，<think> 块会消耗大量 token；
-      // 经验值给到 2500，避免最终 JSON 被截断
-      maxTokens: 2500,
+      // 经验值给到 2000，配合 prompt 的"少思考"指令足够
+      maxTokens: 2000,
       responseJson: true,
     });
 

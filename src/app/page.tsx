@@ -97,7 +97,7 @@ export default function HomePage() {
       return next;
     });
     showToast(`已加入 ${foods.length} 项`);
-    setTab("quick");
+    // 留在描述 Tab，让用户能继续追加 — describe-pane 自身会显示"已识别"提示
   };
 
   const showToast = useCallback((msg: string) => {

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Sparkles } from "lucide-react";
 import type { ParsedFood } from "@/lib/schemas";
 
 type Props = {
@@ -11,17 +11,44 @@ type Props = {
 
 type ParseState =
   | { kind: "idle" }
-  | { kind: "loading" }
+  | { kind: "loading"; message: string }
+  | { kind: "success"; items: ParsedFood[] }
   | { kind: "error"; message: string };
+
+const PROGRESS_MESSAGES = [
+  "正在阅读你的描述…",
+  "在脑子里搜索食物图鉴…",
+  "正在估算份量…",
+  "再确认下营养成分…",
+  "马上就好了…",
+] as const;
 
 export function DescribePane({ onAddParsed }: Props) {
   const [text, setText] = useState("");
   const [state, setState] = useState<ParseState>({ kind: "idle" });
 
+  // 加载时每 ~3 秒切换一条 progress 文案，让用户感觉进度在走
+  useEffect(() => {
+    if (state.kind !== "loading") return;
+    let i = 0;
+    const id = window.setInterval(() => {
+      i = (i + 1) % PROGRESS_MESSAGES.length;
+      setState({ kind: "loading", message: PROGRESS_MESSAGES[i] });
+    }, 2800);
+    return () => window.clearInterval(id);
+  }, [state.kind]);
+
+  // 成功提示 5 秒后自动消失
+  useEffect(() => {
+    if (state.kind !== "success") return;
+    const t = window.setTimeout(() => setState({ kind: "idle" }), 5000);
+    return () => window.clearTimeout(t);
+  }, [state]);
+
   const handleParse = async () => {
     const trimmed = text.trim();
     if (trimmed.length < 2) return;
-    setState({ kind: "loading" });
+    setState({ kind: "loading", message: PROGRESS_MESSAGES[0] });
     try {
       const res = await fetch("/api/parse-meal", {
         method: "POST",
@@ -43,7 +70,7 @@ export function DescribePane({ onAddParsed }: Props) {
       }
       onAddParsed(items);
       setText("");
-      setState({ kind: "idle" });
+      setState({ kind: "success", items });
     } catch {
       setState({ kind: "error", message: "网络断了，待会儿再试。" });
     }
@@ -51,7 +78,7 @@ export function DescribePane({ onAddParsed }: Props) {
 
   return (
     <section className="pane describe" aria-label="自然语言描述">
-      <p className="pane-hint">越详细越准。识别完成会自动加入摄入清单。</p>
+      <p className="pane-hint">越详细越准。识别完成会自动加入摄入清单，可以继续追加。</p>
       <textarea
         className="describe-textarea"
         placeholder="例如：中午火锅吃了两盘肥牛、一盘青菜、清汤锅，喝了一瓶啤酒，最后一份红糖糍粑。"
@@ -72,7 +99,7 @@ export function DescribePane({ onAddParsed }: Props) {
           {state.kind === "loading" ? (
             <>
               <span className="parsing-spinner" aria-hidden />
-              <span>AI 解析中（约 15 秒）</span>
+              <span>{state.message}</span>
             </>
           ) : (
             <>
@@ -85,6 +112,22 @@ export function DescribePane({ onAddParsed }: Props) {
 
       {state.kind === "error" && (
         <p className="parse-error" role="alert">{state.message}</p>
+      )}
+
+      {state.kind === "success" && (
+        <div className="parse-success" role="status" aria-live="polite">
+          <span className="parse-success-icon">
+            <Check size={16} aria-hidden />
+          </span>
+          <div className="parse-success-body">
+            <span className="parse-success-title">
+              已识别 {state.items.length} 项并加入摄入
+            </span>
+            <span className="parse-success-list">
+              {state.items.map((it) => `${it.emoji} ${it.name}`).join("　")}
+            </span>
+          </div>
+        </div>
       )}
     </section>
   );
