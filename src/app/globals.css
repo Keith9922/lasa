@@ -190,6 +190,17 @@ img { display: block; max-width: 100%; }
   align-items: center;
   gap: var(--sp-2);
   flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+@media (max-width: 480px) {
+  .brand-actions {
+    /* 小屏每个 icon-btn 紧凑些；user-badge 的姓名也截短 */
+    gap: 4px;
+  }
+  .brand-actions .icon-btn { padding: 4px 8px; font-size: 10px; min-height: 28px; }
+  .brand-actions .icon-btn span:not(.user-badge-avatar) { max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-badge-name { max-width: 50px; }
 }
 
 .brand-actions .icon-btn {
@@ -2664,6 +2675,17 @@ a:focus-visible,
   gap: var(--sp-2);
   margin-bottom: var(--sp-4);
 }
+@media (max-width: 480px) {
+  .insights-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+  /* 第三张卡占满整行 */
+  .insights-summary .insights-card:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+  .insights-card-num { font-size: 18px; }
+  .insights-card { padding: 10px 12px; }
+}
 .insights-card {
   background: var(--card);
   border: 1px solid var(--line);
@@ -2726,6 +2748,14 @@ a:focus-visible,
   grid-template-columns: 18px 1fr 60px 28px;
   align-items: center;
   gap: var(--sp-2);
+}
+@media (max-width: 480px) {
+  .bristol-bar {
+    /* 缩小标签列 + 缩小末尾计数列，腾给条 */
+    grid-template-columns: 14px 1fr 48px 22px;
+    gap: 6px;
+  }
+  .bristol-bar-name { font-size: 11px; }
 }
 .bristol-bar-label {
   font-weight: 700;
