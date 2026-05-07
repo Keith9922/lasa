@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BookOpen, CircleHelp, History as HistoryIcon, ListChecks, Pencil, Settings as SettingsIcon } from "lucide-react";
+import { BarChart3, BookOpen, CircleHelp, History as HistoryIcon, ListChecks, Pencil, Settings as SettingsIcon } from "lucide-react";
 
 import { PORTION_LABEL, PRESET_FOODS, getFoodById, type PortionLevel, type PresetFood } from "@/lib/foods";
 import { intakeFromPreset, intakeFromAi } from "@/lib/intake";
@@ -259,6 +259,10 @@ export default function HomePage() {
                 <Link className="icon-btn" href="/history" aria-label="日记">
                   <HistoryIcon size={14} aria-hidden />
                   <span>日记</span>
+                </Link>
+                <Link className="icon-btn" href="/insights" aria-label="趋势">
+                  <BarChart3 size={14} aria-hidden />
+                  <span>趋势</span>
                 </Link>
                 <Link className="icon-btn" href="/settings" aria-label="设置">
                   <SettingsIcon size={14} aria-hidden />

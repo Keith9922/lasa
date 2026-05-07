@@ -1,0 +1,170 @@
+/**
+ * 历史数据聚合 —— 给 /insights 页用
+ *
+ * 全部从 HistoryEntry[] 里算，纯函数零副作用，可单测。
+ */
+
+import type { Prediction } from "./predict";
+import type { HistoryEntry, Verdict } from "./storage";
+
+export type HistoryStats = {
+  /** 总记录数 */
+  total: number;
+  /** 已反馈数 */
+  feedbackCount: number;
+  /** 命中率：(accurate + 0.5*partial) / feedbackCount，0-1；feedbackCount=0 时为 null */
+  accuracy: number | null;
+  /** 反馈分布 */
+  verdicts: Record<Verdict, number>;
+  /** 最近一周记录数（含今天） */
+  last7Days: number;
+  /** 上一周（8-14 天前）记录数，用于趋势对比 */
+  prev7Days: number;
+  /** 平均每日热量（最近 7 天里有记录的日子的均值） */
+  avgKcalPerDay: number | null;
+  /** Bristol 1-7 频次分布 */
+  bristol: Record<Prediction["bristol"], number>;
+  /** 颜色频次分布（按降序，截最常见 4 个）*/
+  topColors: { color: Prediction["color"]; count: number }[];
+  /** 最常出现的食物（最常见 5 个） */
+  topFoods: { name: string; emoji: string; count: number }[];
+  /** 长期健康观察 —— 触发的提示项 */
+  observations: string[];
+};
+
+const COLORS: Prediction["color"][] = [
+  "normal", "dark", "yellow", "pale", "green", "red", "black",
+];
+
+export function computeStats(history: HistoryEntry[]): HistoryStats {
+  if (history.length === 0) {
+    return {
+      total: 0,
+      feedbackCount: 0,
+      accuracy: null,
+      verdicts: { accurate: 0, partial: 0, wrong: 0 },
+      last7Days: 0,
+      prev7Days: 0,
+      avgKcalPerDay: null,
+      bristol: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
+      topColors: [],
+      topFoods: [],
+      observations: [],
+    };
+  }
+
+  const verdicts: Record<Verdict, number> = { accurate: 0, partial: 0, wrong: 0 };
+  let feedbackCount = 0;
+  for (const e of history) {
+    if (e.verdict) {
+      verdicts[e.verdict]++;
+      feedbackCount++;
+    }
+  }
+  const accuracy =
+    feedbackCount === 0
+      ? null
+      : (verdicts.accurate + 0.5 * verdicts.partial) / feedbackCount;
+
+  // 时间窗口
+  const now = Date.now();
+  const oneDayMs = 86_400_000;
+  let last7Days = 0;
+  let prev7Days = 0;
+  let last7Kcal = 0;
+  const last7Dates = new Set<string>();
+  for (const e of history) {
+    const age = now - e.timestamp;
+    if (age <= 7 * oneDayMs) {
+      last7Days++;
+      last7Kcal += e.totalKcal;
+      last7Dates.add(e.date);
+    } else if (age <= 14 * oneDayMs) {
+      prev7Days++;
+    }
+  }
+  const avgKcalPerDay =
+    last7Dates.size === 0 ? null : Math.round(last7Kcal / last7Dates.size);
+
+  // Bristol 分布
+  const bristol: Record<Prediction["bristol"], number> = {
+    1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0,
+  };
+  for (const e of history) bristol[e.bristol]++;
+
+  // 颜色分布（不展示 normal —— 太常见，挤掉信息）
+  const colorMap = new Map<Prediction["color"], number>();
+  for (const e of history) {
+    if (e.color === "normal") continue;
+    colorMap.set(e.color, (colorMap.get(e.color) ?? 0) + 1);
+  }
+  const topColors = COLORS
+    .map((c) => ({ color: c, count: colorMap.get(c) ?? 0 }))
+    .filter((c) => c.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
+
+  // 食物 top 5
+  const foodMap = new Map<string, { name: string; emoji: string; count: number }>();
+  for (const e of history) {
+    for (const it of e.intake) {
+      const key = it.name;
+      const cur = foodMap.get(key);
+      if (cur) cur.count++;
+      else foodMap.set(key, { name: it.name, emoji: it.emoji, count: 1 });
+    }
+  }
+  const topFoods = Array.from(foodMap.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // 长期观察 —— 软提示，不是医学建议
+  const observations: string[] = [];
+  const total = history.length;
+  if (total >= 5) {
+    const constipated = bristol[1] + bristol[2];
+    const loose = bristol[6] + bristol[7];
+    if (constipated / total > 0.4) observations.push("最近偏便秘的天数比较多，多补点纤维和水。");
+    if (loose / total > 0.4) observations.push("最近偏稀的天数偏多，留意一下乳制品/辛辣/油脂。");
+    const fiberAvg =
+      history.reduce((s, e) => s + (e.intake.length || 0), 0) / total;
+    if (fiberAvg < 2) observations.push("每天记录的食物种类偏少，多种食材可能让结果更准。");
+  }
+  if (verdicts.wrong > verdicts.accurate * 2 && feedbackCount >= 5) {
+    observations.push("近期「不准」反馈较多，可能你的肠道节奏不在常规模型里——等校准积累后会更靠谱。");
+  }
+
+  return {
+    total,
+    feedbackCount,
+    accuracy,
+    verdicts,
+    last7Days,
+    prev7Days,
+    avgKcalPerDay,
+    bristol,
+    topColors,
+    topFoods,
+    observations,
+  };
+}
+
+export const COLOR_LABELS: Record<Prediction["color"], string> = {
+  normal: "正常棕",
+  dark: "深褐",
+  yellow: "黄褐",
+  pale: "灰白",
+  green: "绿褐",
+  red: "暗红褐",
+  black: "黑褐",
+};
+
+export const COLOR_HEX: Record<Prediction["color"], string> = {
+  normal: "#6F4E37",
+  dark: "#3E2723",
+  yellow: "#A0834C",
+  pale: "#C4B089",
+  green: "#5A5E2E",
+  red: "#5C3025",
+  black: "#1F1410",
+};
