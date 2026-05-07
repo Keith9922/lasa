@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces } from "next/font/google";
 import "./globals.css";
+import { AuthSessionProvider } from "@/components/session-provider";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -75,7 +76,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh-CN" className={display.variable}>
-      <body>{children}</body>
+      <body>
+        <AuthSessionProvider>{children}</AuthSessionProvider>
+      </body>
     </html>
   );
 }

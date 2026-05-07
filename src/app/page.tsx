@@ -27,6 +27,7 @@ import { ResultView } from "@/components/result-view";
 import { HelpModal } from "@/components/help-modal";
 import { Toast } from "@/components/toast";
 import { YesterdayPrompt } from "@/components/yesterday-prompt";
+import { UserBadge } from "@/components/user-badge";
 import {
   recordCard,
   findPendingVerdict,
@@ -312,6 +313,7 @@ export default function HomePage() {
                   <CircleHelp size={14} aria-hidden />
                   <span>怎么玩</span>
                 </button>
+                <UserBadge />
               </div>
             </header>
 
