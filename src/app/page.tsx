@@ -8,9 +8,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CircleHelp, ListChecks, Pencil } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, CircleHelp, History as HistoryIcon, ListChecks, Pencil, Settings as SettingsIcon } from "lucide-react";
 
-import { PORTION_LABEL, getFoodById, type PortionLevel, type PresetFood } from "@/lib/foods";
+import { PORTION_LABEL, PRESET_FOODS, getFoodById, type PortionLevel, type PresetFood } from "@/lib/foods";
 import { intakeFromPreset, intakeFromAi } from "@/lib/intake";
 import { predict, type Prediction } from "@/lib/predict";
 import { pickAchievement, type Achievement } from "@/lib/achievements";
@@ -25,6 +26,8 @@ import { ToiletAnimation } from "@/components/toilet-animation";
 import { ResultView } from "@/components/result-view";
 import { HelpModal } from "@/components/help-modal";
 import { Toast } from "@/components/toast";
+import { YesterdayPrompt } from "@/components/yesterday-prompt";
+import { recordCard, findPendingVerdict, getDex, getSettings, type HistoryEntry } from "@/lib/storage";
 
 type TabKey = "quick" | "describe";
 
@@ -41,6 +44,10 @@ export default function HomePage() {
   const [phase, setPhase] = useState<Phase>({ kind: "input" });
   const [helpOpen, setHelpOpen] = useState(false);
   const [toast, setToast] = useState<{ msg: string; show: boolean }>({ msg: "", show: false });
+  const [pending, setPending] = useState<HistoryEntry | null>(null);
+  const [dexCount, setDexCount] = useState(0);
+  /** AI 解析时 server 估算的整餐水分（毫升）；用于预测引擎水合维度 */
+  const [extraWaterMl, setExtraWaterMl] = useState(0);
   const toastTimer = useRef<number | null>(null);
   const roastRef = useRef<{ promise: Promise<string>; abort: AbortController } | null>(null);
 
@@ -49,6 +56,12 @@ export default function HomePage() {
   useEffect(() => () => {
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
     roastRef.current?.abort.abort();
+  }, []);
+
+  // 入站时拉一次：是否有待反馈的"昨天预测" + 图鉴解锁数
+  useEffect(() => {
+    setPending(findPendingVerdict());
+    setDexCount(getDex().length);
   }, []);
 
   // ---- handlers ----
@@ -87,7 +100,7 @@ export default function HomePage() {
     setIntake({});
   };
 
-  const addParsed = (foods: ParsedFood[]) => {
+  const addParsed = (foods: ParsedFood[], totalWaterMl?: number) => {
     setIntake((prev) => {
       const next = { ...prev };
       foods.forEach((f, i) => {
@@ -96,6 +109,9 @@ export default function HomePage() {
       });
       return next;
     });
+    if (typeof totalWaterMl === "number") {
+      setExtraWaterMl((prev) => prev + totalWaterMl);
+    }
     showToast(`已加入 ${foods.length} 项`);
     // 留在描述 Tab，让用户能继续追加 — describe-pane 自身会显示"已识别"提示
   };
@@ -110,10 +126,20 @@ export default function HomePage() {
 
   const handleStart = () => {
     if (intakeList.length === 0) return;
-    const prediction = predict({ items: intakeList });
+    // 拉取用户校准 bias + 调性
+    const settings = getSettings();
+    const prediction = predict({
+      items: intakeList,
+      bristolBias: settings.calibration.bristolBias,
+      volumeBias: settings.calibration.volumeBias,
+      extraWaterMl,
+    });
     const achievement = pickAchievement(prediction, intakeList);
     const abort = new AbortController();
-    roastRef.current = { promise: fetchRoast(prediction, intakeList, abort.signal), abort };
+    roastRef.current = {
+      promise: fetchRoast(prediction, intakeList, abort.signal, settings.tone),
+      abort,
+    };
     setPhase({ kind: "animating", prediction, achievement });
   };
 
@@ -121,6 +147,25 @@ export default function HomePage() {
     if (phase.kind !== "animating" || !roastRef.current) return;
     const { promise } = roastRef.current;
     const { prediction, achievement } = phase;
+    // 写入历史 / 图鉴 / 成就（同步本地，纯加法不阻塞 UI）
+    try {
+      recordCard({
+        prediction,
+        intake: intakeList,
+        achievement:
+          achievement && achievement.rarity !== "common"
+            ? {
+                id: achievement.id,
+                rarity: achievement.rarity,
+                title: achievement.title,
+                blurb: achievement.blurb,
+              }
+            : undefined,
+      });
+    } catch (err) {
+      // localStorage 满 / 隐私模式禁用 → 不影响主流程
+      console.warn("[storage] recordCard failed", err);
+    }
     // 立即出卡（roast 留空，PoopCard 自带思考中占位）
     setPhase({ kind: "result", prediction, roast: "", achievement });
     // AI 到位后原地替换；用户中途 reset 已切到 input → functional update 自动忽略
@@ -132,12 +177,51 @@ export default function HomePage() {
       );
     });
     roastRef.current = null;
-  }, [phase]);
+  }, [phase, intakeList]);
+
+  /** 「随便给我来一份」—— 随机抽 2-3 项预设走完流程，零门槛体验首次出卡 */
+  const handleSurprise = () => {
+    // 从 main 类挑 1 个，其它类各挑 0-1 个，确保有反差
+    const byCategory = (cat: PresetFood["category"]) =>
+      PRESET_FOODS.filter((f) => f.category === cat);
+    const sample = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]!;
+    const picks: PresetFood[] = [
+      sample(byCategory("main")),
+      sample(byCategory("drink")),
+    ];
+    if (Math.random() < 0.5) picks.push(sample(byCategory("fruit")));
+    const next: Record<string, IntakeItem> = {};
+    picks.forEach((f) => {
+      const portion = (Math.random() < 0.4 ? "large" : "normal") as PortionLevel;
+      next[f.id] = intakeFromPreset(f, portion);
+    });
+    setIntake(next);
+    showToast("已随机来一顿，自动开拉…");
+    // 给一帧让 setIntake 落地，再 start
+    setTimeout(() => {
+      const items = Object.values(next);
+      if (items.length === 0) return;
+      const settings = getSettings();
+      const prediction = predict({
+        items,
+        bristolBias: settings.calibration.bristolBias,
+        volumeBias: settings.calibration.volumeBias,
+      });
+      const achievement = pickAchievement(prediction, items);
+      const abort = new AbortController();
+      roastRef.current = {
+        promise: fetchRoast(prediction, items, abort.signal, settings.tone),
+        abort,
+      };
+      setPhase({ kind: "animating", prediction, achievement });
+    }, 50);
+  };
 
   const handleReset = () => {
     roastRef.current?.abort.abort();
     roastRef.current = null;
     setIntake({});
+    setExtraWaterMl(0);
     setTab("quick");
     setPhase({ kind: "input" });
   };
@@ -154,11 +238,31 @@ export default function HomePage() {
                 <span className="brand-emoji" aria-hidden>💩</span>
                 <span className="brand-zh">拉啥</span>
               </span>
-              <button className="icon-btn" type="button" onClick={() => setHelpOpen(true)} aria-label="怎么玩">
-                <CircleHelp size={14} aria-hidden />
-                <span>怎么玩</span>
-              </button>
+              <div className="brand-actions">
+                <Link className="icon-btn" href="/dex" aria-label="图鉴">
+                  <BookOpen size={14} aria-hidden />
+                  <span>图鉴 {dexCount > 0 ? `${dexCount}/49` : ""}</span>
+                </Link>
+                <Link className="icon-btn" href="/history" aria-label="日记">
+                  <HistoryIcon size={14} aria-hidden />
+                  <span>日记</span>
+                </Link>
+                <Link className="icon-btn" href="/settings" aria-label="设置">
+                  <SettingsIcon size={14} aria-hidden />
+                </Link>
+                <button className="icon-btn" type="button" onClick={() => setHelpOpen(true)} aria-label="怎么玩">
+                  <CircleHelp size={14} aria-hidden />
+                  <span>怎么玩</span>
+                </button>
+              </div>
             </header>
+
+            {pending && (
+              <YesterdayPrompt
+                entry={pending}
+                onDone={() => setPending(null)}
+              />
+            )}
 
             <section className="hero">
               <p className="hero-eyebrow">Today In · Tomorrow Out</p>
@@ -206,6 +310,15 @@ export default function HomePage() {
               >
                 {intakeList.length === 0 ? "先选点吃的" : "开 拉"}
               </button>
+              {intakeList.length === 0 && (
+                <button
+                  className="cta-secondary"
+                  type="button"
+                  onClick={handleSurprise}
+                >
+                  🎲 随便来一顿，看会拉啥
+                </button>
+              )}
               <p className="disclaimer">仅供娱乐 · 不构成医学建议</p>
             </div>
           </>
@@ -238,19 +351,20 @@ async function fetchRoast(
   prediction: Prediction,
   intake: IntakeItem[],
   signal: AbortSignal,
+  tone: "savage" | "gentle",
 ): Promise<string> {
   const summary = intake.map((i) =>
     `${i.name}${i.portion ? `(${PORTION_LABEL[i.portion]})` : `(${i.grams}g)`}`,
   );
   // 与 server 35s 超时呼应；reasoning 模型思考较慢
   const timeout = AbortSignal.any([signal, AbortSignal.timeout(40_000)]);
-  // warnings 仅前端 UI 用，不送给模型
-  const { warnings: _warnings, ...payload } = prediction;
+  // warnings & _debug 仅前端用，不送给模型
+  const { warnings: _w, _debug: _d, ...payload } = prediction;
   try {
     const res = await fetch("/api/generate-roast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prediction: payload, intakeSummary: summary }),
+      body: JSON.stringify({ prediction: payload, intakeSummary: summary, tone }),
       signal: timeout,
     });
     if (res.ok) {
