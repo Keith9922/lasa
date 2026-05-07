@@ -27,7 +27,16 @@ import { ResultView } from "@/components/result-view";
 import { HelpModal } from "@/components/help-modal";
 import { Toast } from "@/components/toast";
 import { YesterdayPrompt } from "@/components/yesterday-prompt";
-import { recordCard, findPendingVerdict, getDex, getSettings, type HistoryEntry } from "@/lib/storage";
+import {
+  recordCard,
+  findPendingVerdict,
+  getDex,
+  getSettings,
+  getCustomFoods,
+  saveCustomFood,
+  customFoodToPresetShape,
+  type HistoryEntry,
+} from "@/lib/storage";
 
 type TabKey = "quick" | "describe";
 
@@ -46,6 +55,7 @@ export default function HomePage() {
   const [toast, setToast] = useState<{ msg: string; show: boolean }>({ msg: "", show: false });
   const [pending, setPending] = useState<HistoryEntry | null>(null);
   const [dexCount, setDexCount] = useState(0);
+  const [customFoods, setCustomFoods] = useState<PresetFood[]>([]);
   /** AI 解析时 server 估算的整餐水分（毫升）；用于预测引擎水合维度 */
   const [extraWaterMl, setExtraWaterMl] = useState(0);
   const toastTimer = useRef<number | null>(null);
@@ -66,11 +76,42 @@ export default function HomePage() {
     roastRef.current?.abort.abort();
   }, []);
 
-  // 入站时拉一次：是否有待反馈的"昨天预测" + 图鉴解锁数
+  // 入站时拉一次：待反馈条 / 图鉴解锁数 / 用户常用食物
   useEffect(() => {
     setPending(findPendingVerdict());
     setDexCount(getDex().length);
+    setCustomFoods(getCustomFoods().map(customFoodToPresetShape));
   }, []);
+
+  const savedFoodNames = useMemo(
+    () => new Set(customFoods.map((f) => f.name)),
+    [customFoods],
+  );
+
+  const handleSaveAsCustom = useCallback((item: IntakeItem) => {
+    if (item.source !== "ai") return;
+    if (savedFoodNames.has(item.name)) return;
+    const saved = saveCustomFood({
+      emoji: item.emoji,
+      name: item.name,
+      base: {
+        grams: item.grams,
+        kcal: item.macros.kcal,
+        carbs: item.macros.carbs,
+        fiber: item.macros.fiber,
+        protein: item.macros.protein,
+        fat: item.macros.fat,
+      },
+      tags: item.tags,
+    });
+    setCustomFoods((prev) => [
+      customFoodToPresetShape({ ...saved, savedAt: saved.savedAt }),
+      ...prev.filter((f) => f.name !== saved.name),
+    ]);
+    showToast(`已保存「${saved.name}」到常用`);
+  // showToast 是 useCallback；savedFoodNames / saved.name 不需要进 deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedFoodNames]);
 
   // ---- handlers ----
 
@@ -311,12 +352,23 @@ export default function HomePage() {
             </div>
 
             {tab === "quick" ? (
-              <QuickPickPane intake={intake} onToggle={togglePreset} onCyclePortion={cyclePortion} />
+              <QuickPickPane
+                intake={intake}
+                onToggle={togglePreset}
+                onCyclePortion={cyclePortion}
+                customFoods={customFoods}
+              />
             ) : (
               <DescribePane onAddParsed={addParsed} />
             )}
 
-            <IntakeList items={intakeList} onRemove={removeIntake} onClear={clearIntake} />
+            <IntakeList
+              items={intakeList}
+              onRemove={removeIntake}
+              onClear={clearIntake}
+              savedFoodNames={savedFoodNames}
+              onSaveAsCustom={handleSaveAsCustom}
+            />
 
             <div className="cta-wrap">
               <button

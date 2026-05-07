@@ -6,23 +6,32 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Trash2, X } from "lucide-react";
 import {
   getSettings,
   patchSettings,
   exportAll,
   clearAll,
+  getCustomFoods,
+  removeCustomFood,
   type Settings,
+  type CustomFood,
 } from "@/lib/storage";
 import { SettingsSkeleton } from "@/components/skeletons";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [customFoods, setCustomFoods] = useState<CustomFood[]>([]);
 
   useEffect(() => {
     setSettings(getSettings());
+    setCustomFoods(getCustomFoods());
   }, []);
+
+  const handleDeleteCustom = (id: string) => {
+    setCustomFoods(removeCustomFood(id));
+  };
 
   const update = (patch: Partial<Settings>) => {
     setSettings(patchSettings(patch));
@@ -100,6 +109,36 @@ export default function SettingsPage() {
             根据你的「准/不准」反馈，下次预测会自动微调。<br />
             累计反馈：<strong>{settings.calibration.samples}</strong> 次 · 形态偏移 {settings.calibration.bristolBias.toFixed(2)} · 体积偏移 {settings.calibration.volumeBias.toFixed(2)}
           </p>
+        </section>
+
+        <section className="settings-group">
+          <h3 className="settings-title">我的常用食物</h3>
+          {customFoods.length === 0 ? (
+            <p className="custom-food-empty">
+              还没有自己的常用食物。在「描述一下」里 AI 解析出食物后，点星标即可保存。
+            </p>
+          ) : (
+            <ul className="custom-foods-list">
+              {customFoods.map((f) => (
+                <li key={f.id} className="custom-food-row">
+                  <span className="custom-food-emoji" aria-hidden>{f.emoji}</span>
+                  <span className="custom-food-name">{f.name}</span>
+                  <span className="custom-food-meta tabular">
+                    {f.base.grams}g · {f.base.kcal}kcal
+                  </span>
+                  <button
+                    className="custom-food-delete"
+                    type="button"
+                    onClick={() => handleDeleteCustom(f.id)}
+                    aria-label={`删除 ${f.name}`}
+                    title="删除"
+                  >
+                    <X size={14} aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className="settings-group">

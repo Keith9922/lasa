@@ -28,8 +28,11 @@ export type PresetFood = {
   id: string;
   emoji: string;
   name: string;
-  /** 大类别：决定快捷选择 Tab 分组 */
-  category: "main" | "drink" | "fruit" | "snack";
+  /**
+   * 大类别：决定快捷选择分组顺序。
+   * "custom" 来自 storage.customFoods 的用户私库，PRESET_FOODS 里不会出现。
+   */
+  category: "main" | "drink" | "fruit" | "snack" | "custom";
   /** 一份"适中"份量下的宏量估算（克） */
   base: {
     grams: number;

@@ -24,6 +24,7 @@ const KEY = {
   dex: "lasa.dex.v1",
   settings: "lasa.settings.v1",
   achievements: "lasa.achievements.v1",
+  customFoods: "lasa.customFoods.v1",
 } as const;
 
 const HISTORY_MAX = 90;
@@ -83,6 +84,28 @@ export type AchievementRecord = {
   unlockedAt: number;
   /** 解锁次数 */
   count: number;
+};
+
+/**
+ * 用户保存的"常用食物" —— 由 AI 解析的食物条目一键沉淀，
+ * 之后在快捷选择里直接点。
+ *
+ * 形状与 PresetFood 兼容（除了 category 固定 = "custom"）。
+ */
+export type CustomFood = {
+  id: string;
+  emoji: string;
+  name: string;
+  base: {
+    grams: number;
+    kcal: number;
+    carbs: number;
+    fiber: number;
+    protein: number;
+    fat: number;
+  };
+  tags: string[];
+  savedAt: number;
 };
 
 export type Settings = {
@@ -284,6 +307,68 @@ function applyCalibrationFromVerdict(verdict: Verdict): void {
   patchSettings({ calibration: cal });
 }
 
+// ---------- 常用食物 ----------
+
+export function getCustomFoods(): CustomFood[] {
+  return read<CustomFood[]>(KEY.customFoods, []);
+}
+
+/**
+ * 名字相同视为同一项 → 更新 macros 而不是重复加。
+ * 上限 30 项；超过时按 savedAt 倒序裁剪。
+ */
+export function saveCustomFood(
+  input: Omit<CustomFood, "id" | "savedAt">,
+): CustomFood {
+  const list = getCustomFoods();
+  const idx = list.findIndex((f) => f.name === input.name);
+  let saved: CustomFood;
+  let next: CustomFood[];
+  if (idx === -1) {
+    saved = { ...input, id: cryptoId(), savedAt: Date.now() };
+    next = [saved, ...list].slice(0, 30);
+  } else {
+    saved = { ...list[idx]!, ...input, savedAt: Date.now() };
+    next = [...list];
+    next[idx] = saved;
+  }
+  write(KEY.customFoods, next);
+  return saved;
+}
+
+export function removeCustomFood(id: string): CustomFood[] {
+  const list = getCustomFoods();
+  const next = list.filter((f) => f.id !== id);
+  write(KEY.customFoods, next);
+  return next;
+}
+
+function cryptoId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `cf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** 把 CustomFood 转成 PresetFood 形状，喂给 QuickPickPane / intakeFromPreset */
+export function customFoodToPresetShape(f: CustomFood): {
+  id: string;
+  emoji: string;
+  name: string;
+  category: "custom";
+  base: CustomFood["base"];
+  tags: string[];
+} {
+  return {
+    id: `custom-${f.id}`,
+    emoji: f.emoji,
+    name: f.name,
+    category: "custom" as const,
+    base: f.base,
+    tags: f.tags,
+  };
+}
+
 // ---------- 一站式：出卡时同步写入 ----------
 
 export type RecordCardInput = {
@@ -338,12 +423,13 @@ export function recordCard({ prediction, intake, achievement }: RecordCardInput)
 export function exportAll(): string {
   return JSON.stringify(
     {
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt: Date.now(),
       history: getHistory(),
       dex: getDex(),
       achievements: getAchievements(),
       settings: getSettings(),
+      customFoods: getCustomFoods(),
     },
     null,
     2,

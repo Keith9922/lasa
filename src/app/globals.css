@@ -2384,6 +2384,84 @@ img { display: block; max-width: 100%; }
 
 .settings-danger-actions button { flex: 1; }
 
+/* ===== Intake save button (custom food) ===== */
+.intake-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.intake-save {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px dashed var(--brand);
+  background: transparent;
+  color: var(--brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.intake-save:hover {
+  background: var(--brand);
+  color: white;
+  transform: scale(1.08);
+}
+.intake-save:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* 自定义食物卡片视觉 —— 和系统预设区分一下 */
+.food-card[data-custom="true"] {
+  border-style: dashed;
+  border-color: var(--brand);
+}
+.food-card[data-custom="true"][data-selected="true"] {
+  border-style: solid;
+}
+
+/* 设置页：常用食物管理 */
+.custom-foods-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.custom-food-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.custom-food-emoji { font-size: 18px; width: 24px; text-align: center; }
+.custom-food-name { flex: 1; font-size: 13px; color: var(--ink); }
+.custom-food-meta { font-size: 11px; color: var(--ink-3); }
+.custom-food-delete {
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.custom-food-delete:hover {
+  background: var(--soft);
+  color: var(--danger);
+}
+.custom-food-empty {
+  font-size: 12px;
+  color: var(--ink-3);
+  padding: var(--sp-2) 0;
+}
+
 /* ===== Insights page ===== */
 .insights-summary {
   display: grid;
