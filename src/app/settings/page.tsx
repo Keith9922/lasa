@@ -14,6 +14,7 @@ import {
   clearAll,
   type Settings,
 } from "@/lib/storage";
+import { SettingsSkeleton } from "@/components/skeletons";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -47,11 +48,7 @@ export default function SettingsPage() {
   };
 
   if (!settings) {
-    return (
-      <main className="page">
-        <div className="shell" />
-      </main>
-    );
+    return <SettingsSkeleton />;
   }
 
   return (

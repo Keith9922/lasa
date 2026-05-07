@@ -19,6 +19,7 @@ import {
   type HistoryEntry,
   type Verdict,
 } from "@/lib/storage";
+import { HistorySkeleton } from "@/components/skeletons";
 
 const COLOR_HEX: Record<HistoryEntry["color"], string> = {
   normal: "#6F4E37",
@@ -51,11 +52,7 @@ export default function HistoryPage() {
   };
 
   if (list === null) {
-    return (
-      <main className="page">
-        <div className="shell" />
-      </main>
-    );
+    return <HistorySkeleton />;
   }
 
   return (

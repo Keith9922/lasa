@@ -16,6 +16,7 @@ import {
   type AchievementRecord,
 } from "@/lib/storage";
 import type { Prediction } from "@/lib/predict";
+import { DexSkeleton } from "@/components/skeletons";
 
 const COLORS: { key: Prediction["color"]; label: string; hex: string }[] = [
   { key: "normal", label: "正常棕", hex: "#6F4E37" },
@@ -54,11 +55,7 @@ export default function DexPage() {
   const unlockedCount = unlockedMap.size;
 
   if (cells === null || achievements === null) {
-    return (
-      <main className="page">
-        <div className="shell" />
-      </main>
-    );
+    return <DexSkeleton />;
   }
 
   return (

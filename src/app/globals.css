@@ -2384,6 +2384,31 @@ img { display: block; max-width: 100%; }
 
 .settings-danger-actions button { flex: 1; }
 
+/* ===== Skeleton shimmer ===== */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    100deg,
+    rgba(0, 0, 0, 0.05) 0%,
+    rgba(0, 0, 0, 0.10) 40%,
+    rgba(0, 0, 0, 0.05) 80%
+  );
+  background-size: 200% 100%;
+  background-position: 0 0;
+  animation: skeleton-shimmer 1.4s linear infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+[aria-busy="true"] .dex-cell.locked.skeleton-shimmer {
+  border: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
 /* ===== Reduced motion ===== */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -2399,4 +2424,8 @@ img { display: block; max-width: 100%; }
   .legendary-card { animation: legendary-fade 0.3s ease both; }
   .dex-cell.unlocked { animation: none; }
   .yesterday-prompt { animation: none; }
+  .skeleton-shimmer {
+    animation: none;
+    background: rgba(0, 0, 0, 0.06);
+  }
 }
