@@ -2,6 +2,8 @@
 
 > 告诉我今天吃了啥，我猜你明天拉啥。
 
+[![CI](https://github.com/Keith9922/lasa/actions/workflows/ci.yml/badge.svg)](https://github.com/Keith9922/lasa/actions/workflows/ci.yml)
+
 **🌐 在线体验：https://lasa-gilt.vercel.app/**
 
 基于「碳水 → 量、蛋白质 → 形、脂肪 → 质」的伪科学理论，把今日饮食换算成明日便便预测：Bristol 类型 + 颜色 + 油亮 + 漂浮 + 气味，输出可分享的拍立得卡片。
@@ -43,7 +45,10 @@ npm run build       # 生产构建
 npm run typecheck   # 类型检查
 npm run lint        # ESLint
 npm test            # 预测引擎单测（10 用例）
+npm run ci          # 一键跑 lint + typecheck + test + build（同 CI）
 ```
+
+Node 版本：见 [`.nvmrc`](.nvmrc)（≥ 20）。CI 工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)，每次 push / PR 自动跑全套质量检查。
 
 ## 国内访问（待办）
 
