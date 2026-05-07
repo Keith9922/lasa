@@ -190,6 +190,10 @@ export function predict({
   if (dairyGrams >= 400 && !hasProbiotic) {
     scores[6] += 2;
     reasons.push(`大量乳制品(${dairyGrams}g)，乳糖刺激 → 偏稀`);
+  } else if (dairyGrams >= 400 && hasProbiotic) {
+    // 益生菌缓冲乳糖：偏稀打分降一档，由 6 降到 5
+    scores[5] += 1;
+    reasons.push(`乳制品多但带益生菌 → 缓冲了乳糖刺激`);
   }
   if (hasProbiotic && totals.fiber >= 8) {
     scores[4] += 1.5;
@@ -202,6 +206,16 @@ export function predict({
     reasons.push("辛辣 + 酒精双重刺激 → 偏稀");
   } else if (tags.has("alcohol") && countTag(items, "alcohol") > 300) {
     scores[6] += 1;
+  }
+
+  // 咖啡因 —— 大众都知道的"咖啡推动一下"。量大才推动；少量只在脂肪夹击下生效
+  const caffeineGrams = countTag(items, "caffeine");
+  if (caffeineGrams >= 400) {
+    scores[5] += 1.5;
+    reasons.push("咖啡因量大 → 加速肠蠕动，形态偏软");
+  } else if (caffeineGrams >= 150 && fatPct > 0.4) {
+    scores[5] += 1;
+    reasons.push("高脂 + 咖啡因 → 加速排空，偏软");
   }
 
   // 水合 — 关键 v2 维度

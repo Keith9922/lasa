@@ -122,6 +122,37 @@ test("4500+ kcal → 体积巨量", () => {
   assert.equal(p.volume, "huge");
 });
 
+test("大量咖啡因 → 形态偏软", () => {
+  const noCaffeine = predict({
+    items: [
+      mk({ name: "肉夹馍", grams: 400, macros: { kcal: 700, carbs: 60, fiber: 5, protein: 30, fat: 22 }, tags: ["staple", "red_meat"] }),
+    ],
+  });
+  const heavyCaffeine = predict({
+    items: [
+      mk({ name: "肉夹馍", grams: 400, macros: { kcal: 700, carbs: 60, fiber: 5, protein: 30, fat: 22 }, tags: ["staple", "red_meat"] }),
+      mk({ name: "美式四杯", grams: 1000, macros: { kcal: 32, carbs: 0, fiber: 0, protein: 0, fat: 0 }, tags: ["caffeine", "hydration"] }),
+    ],
+  });
+  // 咖啡因加进来后形态应该不会变得更硬
+  assert.ok(heavyCaffeine.bristol >= noCaffeine.bristol, `caffeine should not push harder; got ${noCaffeine.bristol} → ${heavyCaffeine.bristol}`);
+});
+
+test("乳制品 + 益生菌 → 不会被推向 6（被缓冲）", () => {
+  const noProbiotic = predict({
+    items: [
+      mk({ name: "牛奶", grams: 500, macros: { kcal: 300, carbs: 25, fiber: 0, protein: 16, fat: 16 }, tags: ["dairy"] }),
+    ],
+  });
+  const withProbiotic = predict({
+    items: [
+      mk({ name: "酸奶", grams: 500, macros: { kcal: 300, carbs: 25, fiber: 0, protein: 16, fat: 16 }, tags: ["dairy", "probiotic", "fermented"] }),
+    ],
+  });
+  // 同样量乳制品，益生菌版本不该比无益生菌版本更稀
+  assert.ok(withProbiotic.bristol <= noProbiotic.bristol, `probiotic should buffer dairy; got ${noProbiotic.bristol} → ${withProbiotic.bristol}`);
+});
+
 test("夜宵主导 → 推向偏稀", () => {
   const dinnerOnly = predict({
     items: [
