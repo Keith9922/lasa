@@ -2384,6 +2384,17 @@ img { display: block; max-width: 100%; }
 
 .settings-danger-actions button { flex: 1; }
 
+/* ===== Settings: cloud sync actions ===== */
+.settings-sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.settings-sync-actions .settings-btn { flex: 1 0 auto; min-width: 0; }
+[data-sync-status] .ok { color: var(--good); }
+[data-sync-status] .danger { color: var(--danger); }
+
 /* ===== User badge (header right) ===== */
 .user-badge-skel {
   width: 60px;

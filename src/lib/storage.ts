@@ -155,7 +155,29 @@ function read<T>(key: string, fallback: T): T {
 function write<T>(key: string, value: T): void {
   safe(() => {
     window.localStorage.setItem(key, JSON.stringify(value));
+    notifyMutation();
   }, undefined);
+}
+
+// ---------- 变更事件 ----------
+//
+// 任何 write 都触发一次。cloud-sync 订阅这个事件来节流上传。
+// 内部的 SSR 守卫已经吃掉了 server-side 调用，listener 永远在浏览器跑。
+
+type MutationListener = () => void;
+const mutationListeners = new Set<MutationListener>();
+
+export function onStorageMutation(fn: MutationListener): () => void {
+  mutationListeners.add(fn);
+  return () => {
+    mutationListeners.delete(fn);
+  };
+}
+
+function notifyMutation() {
+  mutationListeners.forEach((l) => {
+    try { l(); } catch { /* swallow */ }
+  });
 }
 
 // ---------- 历史 ----------

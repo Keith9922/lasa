@@ -6,7 +6,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Trash2, X } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { ArrowLeft, CloudUpload, CloudDownload, Download, Trash2, X } from "lucide-react";
 import {
   getSettings,
   patchSettings,
@@ -17,17 +18,50 @@ import {
   type Settings,
   type CustomFood,
 } from "@/lib/storage";
+import {
+  pushNow,
+  pullOnce,
+  deleteCloud,
+  onSyncStatus,
+  type SyncStatus,
+} from "@/lib/cloud-sync";
 import { SettingsSkeleton } from "@/components/skeletons";
 
 export default function SettingsPage() {
+  const { data: session, status: authStatus } = useSession();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [customFoods, setCustomFoods] = useState<CustomFood[]>([]);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({ kind: "idle" });
+  const [busy, setBusy] = useState<"push" | "pull" | "wipe" | null>(null);
 
   useEffect(() => {
     setSettings(getSettings());
     setCustomFoods(getCustomFoods());
+    return onSyncStatus(setSyncStatus);
   }, []);
+
+  const handlePush = async () => {
+    setBusy("push");
+    await pushNow();
+    setBusy(null);
+  };
+  const handlePull = async () => {
+    setBusy("pull");
+    const r = await pullOnce();
+    setBusy(null);
+    if (r.pulled) {
+      // 拉到了 → 重新读各表
+      setSettings(getSettings());
+      setCustomFoods(getCustomFoods());
+    }
+  };
+  const handleCloudWipe = async () => {
+    if (!confirm("确认从云端永久删除你的备份？此操作不可撤回。")) return;
+    setBusy("wipe");
+    await deleteCloud();
+    setBusy(null);
+  };
 
   const handleDeleteCustom = (id: string) => {
     setCustomFoods(removeCustomFood(id));
@@ -112,6 +146,52 @@ export default function SettingsPage() {
         </section>
 
         <section className="settings-group">
+          <h3 className="settings-title">云端同步</h3>
+          {authStatus !== "authenticated" ? (
+            <p className="settings-sub">
+              <Link href="/sign-in?callbackUrl=/settings">登录</Link>后可在多台设备间同步历史和设置。
+              不登录也能用，所有数据存在本地。
+            </p>
+          ) : (
+            <>
+              <p className="settings-sub">
+                已登录为 <strong>{session?.user?.email ?? session?.user?.name}</strong>。
+                每次本地写入会自动节流上传；下面也可以手动触发。
+              </p>
+              <p className="settings-sub" data-sync-status>
+                <SyncStatusLine status={syncStatus} />
+              </p>
+              <div className="settings-sync-actions">
+                <button
+                  className="btn-secondary settings-btn"
+                  type="button"
+                  onClick={handlePush}
+                  disabled={busy !== null}
+                >
+                  <CloudUpload size={14} aria-hidden /> {busy === "push" ? "推送中…" : "立即推送"}
+                </button>
+                <button
+                  className="btn-secondary settings-btn"
+                  type="button"
+                  onClick={handlePull}
+                  disabled={busy !== null}
+                >
+                  <CloudDownload size={14} aria-hidden /> {busy === "pull" ? "拉取中…" : "从云端拉取"}
+                </button>
+                <button
+                  className="btn-danger settings-btn"
+                  type="button"
+                  onClick={handleCloudWipe}
+                  disabled={busy !== null}
+                >
+                  <Trash2 size={14} aria-hidden /> 删除云端备份
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+
+        <section className="settings-group">
           <h3 className="settings-title">我的常用食物</h3>
           {customFoods.length === 0 ? (
             <p className="custom-food-empty">
@@ -173,6 +253,21 @@ export default function SettingsPage() {
       </div>
     </main>
   );
+}
+
+function SyncStatusLine({ status }: { status: SyncStatus }) {
+  switch (status.kind) {
+    case "idle":
+      return <span className="muted">待同步…</span>;
+    case "pulling":
+      return <span>从云端拉取中…</span>;
+    case "pushing":
+      return <span>推送到云端中…</span>;
+    case "ok":
+      return <span className="ok">最近一次同步：{new Date(status.lastSyncedAt).toLocaleTimeString()}</span>;
+    case "error":
+      return <span className="muted danger">出错：{status.message}</span>;
+  }
 }
 
 // ---- 子组件 ----
