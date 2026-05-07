@@ -1,6 +1,6 @@
 # 💩 拉啥（LASA）
 
-> 告诉我今天吃了啥，我猜你明天拉啥。
+> 输入今日饮食，伪科学算法预测明日拉啥。仅供娱乐 · 不构成医学建议。
 
 [![CI](https://github.com/Keith9922/lasa/actions/workflows/ci.yml/badge.svg)](https://github.com/Keith9922/lasa/actions/workflows/ci.yml)
 
@@ -8,58 +8,172 @@
 
 基于「碳水 → 量、蛋白质 → 形、脂肪 → 质」的伪科学理论，把今日饮食换算成明日便便预测：Bristol 类型 + 颜色 + 油亮 + 漂浮 + 气味，输出可分享的拍立得卡片。
 
-仅供娱乐 · 不构成医学建议。
+---
+
+## 功能一览
+
+**核心流程**
+
+- 快捷选择 23 种常见餐食 / 用自然语言一句话描述，AI 解析成结构化食物
+- 「开拉」CTA 触发 3.5s 出卡动效（马桶接屎 + 拍立得 + 音效 + 震动）
+- 拍立得结果卡：Bristol 1-7、颜色 7 档、油亮 / 漂浮 / 臭味、营养环、AI 一句话吐槽
+- Web Share API + 服务端 PNG 兜底下载，覆盖夸克 / UC / 微信浏览器
+
+**沉淀玩法（v2）**
+
+- **`/dex` 图鉴**：Bristol 7 × 颜色 7 = 49 格收藏册，每出卡自动解锁一格
+- **`/history` 屎相日记**：时间轴 + 第二天回看打反馈"准 / 一般 / 不准"
+- **`/insights` 趋势**：命中率、形态分布、颜色排行、高频食物、健康观察
+- **`/settings`**：音效 / 震动 / 沙雕 vs 温柔双调性 / **常用食物管理** / 云端同步 / JSON 导出 / 一键清空
+- **昨日验证回路**：反馈数据写回校准 bias，下次预测自动微调形态/体积
+- **「随便来一顿」**：零输入 demo 路径，随机抽 2-3 项跑完全程
+- **常用食物**：AI 解析过的食物可一键星标存为常用，下次直接快捷点
+
+**工程能力**
+
+- **流式 AI 吐槽**（SSE）—— reasoning 模型思考完毕即逐字推送，绕开"几秒空等"
+- **Auth.js v5**：Demo（邮箱+昵称）+ GitHub OAuth，env 没配也能本地跑
+- **云端同步**：Upstash REST KV / Vercel KV，登录后自动节流上传整张本地 snapshot
+- **PWA**：webmanifest + 多尺寸 icon + Apple Web App + 适配 reduced-motion
+- **完整 Error UI**：error.tsx / global-error.tsx / not-found.tsx，配 mascot 插画
+- **a11y**：跳到主内容、全局 :focus-visible 焦点环、Esc 关菜单
+- **30 个单测**：预测引擎 / 流式 JSON / stats 聚合 / 核心模块纯度
 
 ---
 
-## v2 新增（2026-05）
-
-- **💩 图鉴**：Bristol 7 × 颜色 7 = 49 格收藏册，每出一张卡解锁一格（`/dex`）
-- **屎相日记**：历史时间轴 + 第二天回看打反馈"准/一般/不准"（`/history`）
-- **昨日验证回路**：反馈数据写回校准 bias，下次预测自动微调
-- **设置页**：音效 / 震动 / 沙雕 vs 温柔双调性 / 数据导出 / 清空（`/settings`）
-- **预测引擎 v2**：加权打分代替 if-else 链，引入水分 / 进食时段 / 益生菌维度
-- **音效 + 震动**：Web Audio API 合成（零下载），navigator.vibrate 同步
-- **首页"随便来一顿"**：零输入 demo 路径，降低首跳门槛
-- **食物库扩到 23 项**，按"主食 / 喝的 / 水果 / 零食"分组
-
 ## 技术栈
 
-- **Next.js 15** · React 19 · TypeScript（严格模式）
-- **AI**：OpenAI 兼容接口，server-side only，失败走本地规则兜底
-- **存储**：localStorage（无后端、无登录）
-- **部署**：Vercel
+| 层 | 选型 |
+|---|---|
+| 框架 | Next.js 15 (App Router) · React 19 |
+| 类型 | TypeScript 严格模式 |
+| AI | OpenAI 兼容接口（默认 MiniMax-M2.7 reasoning），server-side only，SSE 流式 |
+| 鉴权 | Auth.js v5 · JWT session · GitHub + Demo provider |
+| 存储 | localStorage（默认）· Upstash REST KV（登录态可选）|
+| 部署 | Vercel（默认）· 任何 Node 18+ 节点都能跑 |
+
+代码切面：
+
+```
+src/
+  core/                # 平台无关的纯逻辑（小程序可移植）
+    index.ts           # 公开 barrel：predict / foods / stats / schemas / ...
+    __purity__.test.ts # 拒绝 DOM 全局的 guard 测试
+  lib/                 # 应用层 + 浏览器/服务器细节
+    storage.ts         # localStorage + 变更事件总线
+    sfx.ts             # Web Audio + 震动
+    cloud-sync.ts      # /api/sync 客户端 adapter
+    server/kv.ts       # Upstash REST 抽象
+    *.test.ts          # 单测 25 条
+  app/                 # Next.js 路由
+    page.tsx /dex /history /insights /settings /sign-in
+    error.tsx global-error.tsx not-found.tsx
+    api/
+      generate-roast/  # 流式 SSE
+      parse-meal/      # 食物 NLP
+      share-card/      # 服务端 PNG（edge）
+      auth/[...nextauth]/
+      sync/
+  auth.ts              # Auth.js 配置
+public/illustrations/  # 手绘 SVG mascot + empty state
+```
+
+---
 
 ## 本地开发
 
 ```bash
-cp .env.example .env.local   # 填入 API key
+cp .env.example .env.local   # 填入需要的 key（最少 0 个，全没配也能跑）
 npm install
 npm run dev                  # http://localhost:3000
 ```
 
-其它命令：
+| 命令 | 干啥 |
+|---|---|
+| `npm run dev` | 开发模式 |
+| `npm run build` | 生产构建 |
+| `npm run typecheck` | 仅类型检查 |
+| `npm run lint` | ESLint（migrated to flat config + ESLint CLI）|
+| `npm test` | node:test + tsx 跑 30 个单测 |
+| `npm run ci` | 一口气：lint + typecheck + test + build（与 GitHub Actions 同步）|
+
+Node ≥ 20（见 [`.nvmrc`](.nvmrc)）。CI：[`.github/workflows/ci.yml`](.github/workflows/ci.yml) 每次 push / PR 跑全套。
+
+---
+
+## 配置（按需）
+
+`.env.local` 全部为可选；不填 = 走兜底模板 + 本地存储。
 
 ```bash
-npm run build       # 生产构建
-npm run typecheck   # 类型检查
-npm run lint        # ESLint
-npm test            # 预测引擎单测（10 用例）
-npm run ci          # 一键跑 lint + typecheck + test + build（同 CI）
+# AI 接口（不填则一句吐槽走本地模板池）
+MINIMAX_API_KEY=
+MINIMAX_BASE_URL=https://api.minimaxi.com/v1
+MINIMAX_MODEL=MiniMax-M2.7
+
+# 鉴权（不填则只有 demo 邮箱+昵称登录）
+AUTH_SECRET=                    # openssl rand -base64 32
+AUTH_URL=                       # 部署后填真实 URL，含协议
+AUTH_GITHUB_ID=                 # github.com/settings/applications/new
+AUTH_GITHUB_SECRET=
+AUTH_DEMO=on                    # 生产 off 关掉 demo provider
+
+# 云端同步（不填则服务端走进程内 Map，多实例不共享、重启即丢）
+KV_REST_API_URL=                # Upstash 控制台 REST URL
+KV_REST_API_TOKEN=
+NEXT_PUBLIC_SITE_URL=           # robots/sitemap/og 取这个
 ```
 
-Node 版本：见 [`.nvmrc`](.nvmrc)（≥ 20）。CI 工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)，每次 push / PR 自动跑全套质量检查。
+---
 
-## 国内访问（待办）
+## 部署
 
-Vercel 国内不稳。建议路径：
-1. **过渡（免备案）**：腾讯云 EdgeOne Pages 或 Cloudflare Pages + 自有域名
-2. **长期**：阿里云函数计算 / 静态托管 + ICP 备案域名
+最快路径（Vercel）：
 
-备案需本人 30 工作日内完成；建议立刻启动。
+```bash
+gh repo create lasa --public --source=. --remote=origin --push
+# 在 vercel.com 一键 Import；Project Settings → Environment Variables
+# 把 .env.local 里需要的项搬进去
+```
+
+**Auth.js GitHub provider 注册**：
+1. https://github.com/settings/applications/new 新建 OAuth App
+2. Authorization callback URL：`${AUTH_URL}/api/auth/callback/github`
+3. 把 Client ID / Secret 填到 `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET`
+
+**Upstash KV（用户跨设备同步）**：
+1. https://console.upstash.com/ 创建 Redis Database
+2. REST API → 拷 URL + Token，填 `KV_REST_API_URL` / `KV_REST_API_TOKEN`
+
+**国内访问**：Vercel 国内不稳，备选路径：
+- 过渡（免备案）：腾讯云 EdgeOne Pages / Cloudflare Pages + 自有域名
+- 长期：阿里云函数计算 / 静态托管 + ICP 备案域名（30 工作日）
+
+---
+
+## 微信小程序移植（计划中）
+
+业务核心在 [`src/core/`](src/core/index.ts) 里已经按"零浏览器全局"的约束抽好了。
+
+落地方案（待执行）：
+
+1. 新仓库或同仓库 `mini/` 子目录初始化 Taro 项目
+2. `npm link ../lasa/src/core` 或单独发包，把核心层装进去
+3. 替换的薄壳：
+   - 摄入 / 出卡按钮 → Taro `<View>` + `<Button>`
+   - 拍立得卡 → `<canvas>` 服务端导图（用现有 `/api/share-card` edge 路由）
+   - localStorage → `wx.setStorageSync`
+   - SFX → 小程序原生 audio + `wx.vibrateShort`
+   - Web Share → 小程序 `onShareAppMessage`
+4. AI 接口走 H5 站同一组 `/api/*`（小程序合规需在公众号后台配 server domain）
+
+阻塞项：上架需主体 + 类目，等 H5 这版稳了再走。
+
+---
 
 ## 文档
 
 - 开发规范：[CLAUDE.md](CLAUDE.md)
 - 完整文档索引：[docs/README.md](docs/README.md)
 - 设计原型：[prototype/index.html](prototype/index.html) · [prototype/animation.html](prototype/animation.html)
+- v2 阶段日志：[V2_CHANGELOG.md](V2_CHANGELOG.md)
