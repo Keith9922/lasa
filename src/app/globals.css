@@ -2384,6 +2384,44 @@ img { display: block; max-width: 100%; }
 
 .settings-danger-actions button { flex: 1; }
 
+/* ===== A11y: skip link + global focus ring ===== */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -100px;
+  z-index: 1000;
+  background: var(--brand);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: top 0.18s;
+}
+.skip-link:focus {
+  top: 8px;
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/*
+ * 全局 :focus-visible 兜底 —— 所有 interactive 元素键盘聚焦时都至少给出可见焦点
+ * 已有局部 :focus / :focus-visible 规则会按 specificity 接管。
+ */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* main wrapper from layout */
+#main { outline: none; }
+
 /* ===== Empty states with SVG illustrations ===== */
 .empty-state {
   text-align: center;

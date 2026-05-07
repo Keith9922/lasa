@@ -19,11 +19,18 @@ export function UserBadge() {
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
+    const handlerClick = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);
     };
-    window.addEventListener("mousedown", handler);
-    return () => window.removeEventListener("mousedown", handler);
+    const handlerKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("mousedown", handlerClick);
+    window.addEventListener("keydown", handlerKey);
+    return () => {
+      window.removeEventListener("mousedown", handlerClick);
+      window.removeEventListener("keydown", handlerKey);
+    };
   }, [open]);
 
   if (status === "loading") {

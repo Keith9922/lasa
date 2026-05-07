@@ -77,7 +77,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" className={display.variable}>
       <body>
-        <AuthSessionProvider>{children}</AuthSessionProvider>
+        <a href="#main" className="skip-link">跳到主内容</a>
+        <AuthSessionProvider>
+          <div id="main" tabIndex={-1}>{children}</div>
+        </AuthSessionProvider>
       </body>
     </html>
   );
