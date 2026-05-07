@@ -2384,6 +2384,22 @@ img { display: block; max-width: 100%; }
 
 .settings-danger-actions button { flex: 1; }
 
+/* ===== Empty states with SVG illustrations ===== */
+.empty-state {
+  text-align: center;
+  padding: var(--sp-6) 0;
+}
+.empty-illustration {
+  display: block;
+  margin: 0 auto var(--sp-3);
+  width: 200px;
+  height: auto;
+  opacity: 0.95;
+}
+@media (max-width: 480px) {
+  .empty-illustration { width: 160px; }
+}
+
 /* ===== Settings: cloud sync actions ===== */
 .settings-sync-actions {
   display: flex;

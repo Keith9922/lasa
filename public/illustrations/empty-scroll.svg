@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" width="240" height="200" role="img" aria-label="空空如也">
+  <title>空空如也</title>
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF8E7" />
+      <stop offset="100%" stop-color="#F0E5C4" />
+    </linearGradient>
+  </defs>
+
+  <!-- floor shadow -->
+  <ellipse cx="120" cy="178" rx="72" ry="8" fill="rgba(45,27,14,0.10)" />
+
+  <!-- scroll body -->
+  <rect x="64" y="50" width="112" height="116" rx="8" fill="url(#paper)" stroke="#8B5A2B" stroke-width="2" />
+
+  <!-- top roll -->
+  <ellipse cx="120" cy="50" rx="56" ry="8" fill="#F5E6C8" stroke="#8B5A2B" stroke-width="2" />
+  <!-- bottom roll -->
+  <ellipse cx="120" cy="166" rx="56" ry="8" fill="#F5E6C8" stroke="#8B5A2B" stroke-width="2" />
+
+  <!-- empty placeholder lines (dashed) -->
+  <g stroke="#9A7C5C" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 6" fill="none" opacity="0.6">
+    <path d="M80 80 H 160" />
+    <path d="M80 96 H 140" />
+    <path d="M80 112 H 156" />
+    <path d="M80 128 H 130" />
+  </g>
+
+  <!-- mini poo character peeking -->
+  <g transform="translate(190 100)">
+    <ellipse cx="0" cy="20" rx="22" ry="4" fill="rgba(45,27,14,0.18)" />
+    <path d="M-18 14 C -18 -4, -8 -12, 0 -12 C 8 -12, 18 -4, 18 14 C 18 18, 10 20, 0 20 C -10 20, -18 18, -18 14 Z" fill="#7A4F2A" />
+    <circle cx="-6" cy="0" r="2.4" fill="#FFF" />
+    <circle cx="6"  cy="0" r="2.4" fill="#FFF" />
+    <circle cx="-5.5" cy="0.4" r="1.1" fill="#1F1410" />
+    <circle cx="6.5"  cy="0.4" r="1.1" fill="#1F1410" />
+    <path d="M-5 8 Q 0 12, 5 8" fill="none" stroke="#1F1410" stroke-width="1.4" stroke-linecap="round" />
+  </g>
+
+  <!-- floating dust -->
+  <g fill="#9A7C5C" opacity="0.4">
+    <circle cx="50" cy="40" r="2" />
+    <circle cx="200" cy="50" r="1.5" />
+    <circle cx="40" cy="90" r="1.5" />
+    <circle cx="210" cy="150" r="2" />
+  </g>
+</svg>

@@ -80,6 +80,14 @@ function SignInInner() {
         </header>
 
         <section className="hero" style={{ textAlign: "center" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/illustrations/mascot.svg"
+            alt=""
+            width={160}
+            height={160}
+            style={{ display: "block", margin: "0 auto var(--sp-3)" }}
+          />
           <p className="hero-eyebrow">Sign in to sync</p>
           <h1 className="hero-title">登录后跨设备同步</h1>
           <p className="hero-sub">不登录也能用，所有数据存在你这台设备上。</p>

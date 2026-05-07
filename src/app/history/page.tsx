@@ -70,7 +70,15 @@ export default function HistoryPage() {
         </header>
 
         {list.length === 0 ? (
-          <section className="hero" style={{ textAlign: "center" }}>
+          <section className="hero empty-state">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/illustrations/empty-scroll.svg"
+              alt=""
+              width={200}
+              height={166}
+              className="empty-illustration"
+            />
             <p className="hero-eyebrow">No record yet</p>
             <h1 className="hero-title">还没拉过</h1>
             <p className="hero-sub">先回首页开一张卡，明天再回来看看。</p>
