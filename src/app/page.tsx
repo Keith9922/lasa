@@ -19,15 +19,34 @@ import type { IntakeItem } from "@/lib/types";
 import type { ParsedFood } from "@/lib/schemas";
 import { pickRoast } from "@/lib/roasts";
 
+import dynamic from "next/dynamic";
+
 import { QuickPickPane } from "@/components/quick-pick-pane";
 import { DescribePane } from "@/components/describe-pane";
 import { IntakeList } from "@/components/intake-list";
-import { ToiletAnimation } from "@/components/toilet-animation";
-import { ResultView } from "@/components/result-view";
-import { HelpModal } from "@/components/help-modal";
 import { Toast } from "@/components/toast";
 import { YesterdayPrompt } from "@/components/yesterday-prompt";
 import { UserBadge } from "@/components/user-badge";
+
+/**
+ * 重组件按需加载：
+ *  - ToiletAnimation 只在出卡瞬间用
+ *  - ResultView 拉了 modern-screenshot，是大头
+ *  - HelpModal 只在用户点"怎么玩"时才弹
+ * ssr:false：这些都强 client-only（音频、DOM 截图、Web Audio），SSR 也无意义
+ */
+const ToiletAnimation = dynamic(
+  () => import("@/components/toilet-animation").then((m) => m.ToiletAnimation),
+  { ssr: false },
+);
+const ResultView = dynamic(
+  () => import("@/components/result-view").then((m) => m.ResultView),
+  { ssr: false },
+);
+const HelpModal = dynamic(
+  () => import("@/components/help-modal").then((m) => m.HelpModal),
+  { ssr: false },
+);
 import {
   recordCard,
   findPendingVerdict,
