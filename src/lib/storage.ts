@@ -462,5 +462,55 @@ export function exportAll(): string {
 export function clearAll(): void {
   safe(() => {
     Object.values(KEY).forEach((k) => window.localStorage.removeItem(k));
+    notifyMutation();
   }, undefined);
+}
+
+/**
+ * 从 JSON 字符串里恢复全部数据（exportAll() 的逆操作）。
+ *
+ * 容错：
+ *  - 顶层不是 object → 抛
+ *  - 部分字段缺失 → 仅恢复存在的；其它保持当前值
+ *  - 字段类型不对 → 跳过那一项；其它继续
+ *
+ * @returns 复原成功的表名列表
+ */
+export function importAll(json: string): string[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    throw new Error("JSON 解析失败");
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("数据格式不对");
+  }
+  const obj = parsed as Record<string, unknown>;
+  const restored: string[] = [];
+
+  if (Array.isArray(obj.history)) {
+    write(KEY.history, obj.history);
+    restored.push("history");
+  }
+  if (Array.isArray(obj.dex)) {
+    write(KEY.dex, obj.dex);
+    restored.push("dex");
+  }
+  if (Array.isArray(obj.achievements)) {
+    write(KEY.achievements, obj.achievements);
+    restored.push("achievements");
+  }
+  if (obj.settings && typeof obj.settings === "object") {
+    write(KEY.settings, obj.settings);
+    restored.push("settings");
+  }
+  if (Array.isArray(obj.customFoods)) {
+    write(KEY.customFoods, obj.customFoods);
+    restored.push("customFoods");
+  }
+  if (restored.length === 0) {
+    throw new Error("没识别到任何已知字段（history / dex / achievements / settings / customFoods）");
+  }
+  return restored;
 }

@@ -4,14 +4,15 @@
  * 设置页 —— 控制 storage.Settings + 提供数据导出/清空
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, CloudUpload, CloudDownload, Download, Trash2, X } from "lucide-react";
+import { ArrowLeft, CloudUpload, CloudDownload, Download, Trash2, Upload, X } from "lucide-react";
 import {
   getSettings,
   patchSettings,
   exportAll,
+  importAll,
   clearAll,
   getCustomFoods,
   removeCustomFood,
@@ -71,6 +72,9 @@ export default function SettingsPage() {
     setSettings(patchSettings(patch));
   };
 
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+
   const handleExport = () => {
     const json = exportAll();
     const blob = new Blob([json], { type: "application/json" });
@@ -82,6 +86,21 @@ export default function SettingsPage() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const handleImport = async (file: File) => {
+    setImportMsg(null);
+    try {
+      const text = await file.text();
+      const restored = importAll(text);
+      setSettings(getSettings());
+      setCustomFoods(getCustomFoods());
+      setImportMsg(`恢复成功：${restored.join(" / ")}`);
+    } catch (e) {
+      setImportMsg(`导入失败：${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
   };
 
   const handleClear = () => {
@@ -226,6 +245,32 @@ export default function SettingsPage() {
           <button className="btn-secondary settings-btn" type="button" onClick={handleExport}>
             <Download size={14} aria-hidden /> 导出我的数据（JSON）
           </button>
+          <button
+            className="btn-secondary settings-btn"
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+          >
+            <Upload size={14} aria-hidden /> 从 JSON 导入
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handleImport(f);
+            }}
+          />
+          {importMsg && (
+            <p
+              className={`settings-sub ${importMsg.startsWith("导入失败") ? "danger" : "ok"}`}
+              role="status"
+              aria-live="polite"
+            >
+              {importMsg}
+            </p>
+          )}
           {confirming ? (
             <div className="settings-danger-confirm">
               <p>确认清空所有历史 + 图鉴 + 成就 + 设置？此操作不可撤回。</p>
