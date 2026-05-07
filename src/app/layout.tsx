@@ -16,7 +16,10 @@ const SITE_URL = "https://lasa-gilt.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "拉啥 — 告诉我今天吃了啥，我猜你明天拉啥",
+  title: {
+    default: "拉啥 — 告诉我今天吃了啥，我猜你明天拉啥",
+    template: "%s — 拉啥",
+  },
   description: "基于「碳水→量、蛋白质→形、脂肪→质」伪科学理论的沙雕预测。仅供娱乐。",
   applicationName: "拉啥",
   keywords: ["拉啥", "便便预测", "饮食", "Bristol", "沙雕", "AI"],

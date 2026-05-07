@@ -9,7 +9,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, BarChart3, CalendarDays, Lightbulb, Target, Trophy } from "lucide-react";
+import { ArrowLeft, BarChart3, CalendarDays, Flame, Lightbulb, Target, Trophy } from "lucide-react";
 import { getHistory, type HistoryEntry } from "@/lib/storage";
 import { computeStats, COLOR_LABELS, COLOR_HEX } from "@/lib/stats";
 
@@ -111,12 +111,21 @@ export default function InsightsPage() {
         </header>
 
         <section className="insights-summary" aria-label="总览">
+          <div className="insights-card insights-card--streak" data-active={stats.streak > 0}>
+            <div className="insights-card-icon" aria-hidden><Flame size={16} /></div>
+            <div>
+              <p className="insights-card-num tabular">{stats.streak}</p>
+              <p className="insights-card-sub">
+                {stats.streak === 0 ? "再开一张就续上" : `连续记录 · 共 ${stats.total} 张`}
+              </p>
+            </div>
+          </div>
           <div className="insights-card">
             <div className="insights-card-icon" aria-hidden><CalendarDays size={16} /></div>
             <div>
-              <p className="insights-card-num tabular">{stats.total}</p>
+              <p className="insights-card-num tabular">{stats.last7Days}</p>
               <p className="insights-card-sub">
-                总记录 · 近 7 天 {stats.last7Days}
+                近 7 天
                 {trend !== 0 && (
                   <span className={trend > 0 ? "trend-up" : "trend-down"}>
                     {" "}

@@ -98,3 +98,41 @@ test("便秘倾向触发观察", () => {
   const s = computeStats(ents);
   assert.ok(s.observations.some((o) => o.includes("便秘")));
 });
+
+test("streak：今天/昨天为锚点，往回数不间断的天数", () => {
+  const ymd = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+  const today = new Date();
+  const dn = (off: number) => new Date(today.getTime() - off * 86_400_000);
+
+  // 连续 3 天：今天、昨天、前天
+  const continuous = computeStats([
+    mk({ date: ymd(dn(0)), timestamp: dn(0).getTime() }),
+    mk({ date: ymd(dn(1)), timestamp: dn(1).getTime() }),
+    mk({ date: ymd(dn(2)), timestamp: dn(2).getTime() }),
+  ]);
+  assert.equal(continuous.streak, 3);
+
+  // 中间断了一天 → streak 应该是 1 或 0
+  const broken = computeStats([
+    mk({ date: ymd(dn(0)), timestamp: dn(0).getTime() }),
+    mk({ date: ymd(dn(2)), timestamp: dn(2).getTime() }),
+  ]);
+  assert.equal(broken.streak, 1);
+
+  // 只有昨天 → streak = 1（今天还没记也宽容）
+  const yesterdayOnly = computeStats([
+    mk({ date: ymd(dn(1)), timestamp: dn(1).getTime() }),
+  ]);
+  assert.equal(yesterdayOnly.streak, 1);
+
+  // 最近一次记录是 3 天前 → streak = 0
+  const stale = computeStats([
+    mk({ date: ymd(dn(3)), timestamp: dn(3).getTime() }),
+  ]);
+  assert.equal(stale.streak, 0);
+});

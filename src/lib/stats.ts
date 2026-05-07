@@ -22,6 +22,8 @@ export type HistoryStats = {
   prev7Days: number;
   /** 平均每日热量（最近 7 天里有记录的日子的均值） */
   avgKcalPerDay: number | null;
+  /** 连续记录天数 —— 以今天或昨天为锚点向前数（断 1 天即归零） */
+  streak: number;
   /** Bristol 1-7 频次分布 */
   bristol: Record<Prediction["bristol"], number>;
   /** 颜色频次分布（按降序，截最常见 4 个）*/
@@ -46,6 +48,7 @@ export function computeStats(history: HistoryEntry[]): HistoryStats {
       last7Days: 0,
       prev7Days: 0,
       avgKcalPerDay: null,
+      streak: 0,
       bristol: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
       topColors: [],
       topFoods: [],
@@ -134,6 +137,10 @@ export function computeStats(history: HistoryEntry[]): HistoryStats {
     observations.push("近期「不准」反馈较多，可能你的肠道节奏不在常规模型里——等校准积累后会更靠谱。");
   }
 
+  // streak —— 把所有出卡日期去重排成集合，从"今天 or 昨天"开始往回数
+  // 锚点宽容：今天还没出 但昨天出了 也认为 streak 至少 1
+  const streak = computeStreak(history);
+
   return {
     total,
     feedbackCount,
@@ -142,11 +149,37 @@ export function computeStats(history: HistoryEntry[]): HistoryStats {
     last7Days,
     prev7Days,
     avgKcalPerDay,
+    streak,
     bristol,
     topColors,
     topFoods,
     observations,
   };
+}
+
+function computeStreak(history: HistoryEntry[]): number {
+  const dateSet = new Set(history.map((e) => e.date));
+  if (dateSet.size === 0) return 0;
+  const today = ymd(new Date());
+  const yesterday = ymd(new Date(Date.now() - 86_400_000));
+  // 锚点：今天有记录就从今天起；否则若昨天有就从昨天起；都没就 0
+  let cursor: Date;
+  if (dateSet.has(today)) cursor = new Date();
+  else if (dateSet.has(yesterday)) cursor = new Date(Date.now() - 86_400_000);
+  else return 0;
+  let count = 0;
+  while (dateSet.has(ymd(cursor))) {
+    count++;
+    cursor = new Date(cursor.getTime() - 86_400_000);
+  }
+  return count;
+}
+
+function ymd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 export const COLOR_LABELS: Record<Prediction["color"], string> = {

@@ -2671,20 +2671,25 @@ a:focus-visible,
 /* ===== Insights page ===== */
 .insights-summary {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: var(--sp-2);
   margin-bottom: var(--sp-4);
 }
+@media (min-width: 768px) {
+  .insights-summary { grid-template-columns: 1fr 1fr 1fr 1fr; }
+}
 @media (max-width: 480px) {
-  .insights-summary {
-    grid-template-columns: 1fr 1fr;
-  }
-  /* 第三张卡占满整行 */
-  .insights-summary .insights-card:nth-child(3) {
-    grid-column: 1 / -1;
-  }
   .insights-card-num { font-size: 18px; }
   .insights-card { padding: 10px 12px; }
+}
+
+.insights-card--streak[data-active="true"] {
+  border-color: var(--hot);
+  background: linear-gradient(180deg, var(--card) 0%, rgba(231, 111, 81, 0.06) 100%);
+}
+.insights-card--streak[data-active="true"] .insights-card-icon {
+  background: rgba(231, 111, 81, 0.12);
+  color: var(--hot);
 }
 .insights-card {
   background: var(--card);
