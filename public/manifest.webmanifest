@@ -1,0 +1,32 @@
+{
+  "name": "拉啥 — 告诉我今天吃了啥，我猜你明天拉啥",
+  "short_name": "拉啥",
+  "description": "基于伪科学理论的沙雕便便预测。把今天吃的丢进来，AI 帮你预测明天的便便。",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF4E0",
+  "theme_color": "#FBF4E0",
+  "lang": "zh-CN",
+  "categories": ["entertainment", "lifestyle", "health"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
