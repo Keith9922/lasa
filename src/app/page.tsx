@@ -49,7 +49,15 @@ export default function HomePage() {
   /** AI 解析时 server 估算的整餐水分（毫升）；用于预测引擎水合维度 */
   const [extraWaterMl, setExtraWaterMl] = useState(0);
   const toastTimer = useRef<number | null>(null);
-  const roastRef = useRef<{ promise: Promise<string>; abort: AbortController } | null>(null);
+  /**
+   * 当前活跃的吐槽流上下文。流式吐字时持续更新 latest，
+   * 动画切到 result 时就用 latest 当初始值，之后每个 delta 同步进 phase。
+   */
+  const roastRef = useRef<{
+    prediction: Prediction;
+    abort: AbortController;
+    latest: string;
+  } | null>(null);
 
   const intakeList = useMemo(() => Object.values(intake), [intake]);
 
@@ -124,9 +132,31 @@ export default function HomePage() {
     }, 2200);
   }, []);
 
+  const startRoastStream = (prediction: Prediction, items: IntakeItem[], tone: "savage" | "gentle") => {
+    const abort = new AbortController();
+    const ctx = { prediction, abort, latest: "" };
+    roastRef.current = ctx;
+    // 同步流到 UI：只有当前 phase.prediction === ctx.prediction 时推进，
+    // 用户中途 reset 后引用变化，setState 自动忽略。
+    streamRoast(prediction, items, abort.signal, tone, (text) => {
+      ctx.latest = text;
+      setPhase((prev) =>
+        prev.kind === "result" && prev.prediction === prediction
+          ? { ...prev, roast: text }
+          : prev,
+      );
+    }).then((final) => {
+      ctx.latest = final;
+      setPhase((prev) =>
+        prev.kind === "result" && prev.prediction === prediction
+          ? { ...prev, roast: final }
+          : prev,
+      );
+    }).catch(() => {/* abort / 网络错误已在 streamRoast 内部兜底 */});
+  };
+
   const handleStart = () => {
     if (intakeList.length === 0) return;
-    // 拉取用户校准 bias + 调性
     const settings = getSettings();
     const prediction = predict({
       items: intakeList,
@@ -135,17 +165,12 @@ export default function HomePage() {
       extraWaterMl,
     });
     const achievement = pickAchievement(prediction, intakeList);
-    const abort = new AbortController();
-    roastRef.current = {
-      promise: fetchRoast(prediction, intakeList, abort.signal, settings.tone),
-      abort,
-    };
+    startRoastStream(prediction, intakeList, settings.tone);
     setPhase({ kind: "animating", prediction, achievement });
   };
 
   const handleAnimationComplete = useCallback(() => {
-    if (phase.kind !== "animating" || !roastRef.current) return;
-    const { promise } = roastRef.current;
+    if (phase.kind !== "animating") return;
     const { prediction, achievement } = phase;
     // 写入历史 / 图鉴 / 成就（同步本地，纯加法不阻塞 UI）
     try {
@@ -166,17 +191,9 @@ export default function HomePage() {
       // localStorage 满 / 隐私模式禁用 → 不影响主流程
       console.warn("[storage] recordCard failed", err);
     }
-    // 立即出卡（roast 留空，PoopCard 自带思考中占位）
-    setPhase({ kind: "result", prediction, roast: "", achievement });
-    // AI 到位后原地替换；用户中途 reset 已切到 input → functional update 自动忽略
-    promise.then((roast) => {
-      setPhase((prev) =>
-        prev.kind === "result" && prev.prediction === prediction
-          ? { ...prev, roast }
-          : prev,
-      );
-    });
-    roastRef.current = null;
+    // 用流式当前累积值当初始 roast；后续 delta 会通过 setPhase 持续推进
+    const initialRoast = roastRef.current?.latest ?? "";
+    setPhase({ kind: "result", prediction, roast: initialRoast, achievement });
   }, [phase, intakeList]);
 
   /** 「随便给我来一份」—— 随机抽 2-3 项预设走完流程，零门槛体验首次出卡 */
@@ -208,11 +225,7 @@ export default function HomePage() {
         volumeBias: settings.calibration.volumeBias,
       });
       const achievement = pickAchievement(prediction, items);
-      const abort = new AbortController();
-      roastRef.current = {
-        promise: fetchRoast(prediction, items, abort.signal, settings.tone),
-        abort,
-      };
+      startRoastStream(prediction, items, settings.tone);
       setPhase({ kind: "animating", prediction, achievement });
     }, 50);
   };
@@ -347,32 +360,70 @@ export default function HomePage() {
 
 // ---- helpers ----
 
-async function fetchRoast(
+/**
+ * 流式调用 generate-roast。
+ *
+ *  - 服务端走 SSE：data: {type:"delta"|"done"|"error", ...}
+ *  - 每个 delta 调用 onProgress 推增量；done 后 resolve final
+ *  - 任何阶段出错都回退到本地模板池，**始终返回一个非空字符串**
+ */
+async function streamRoast(
   prediction: Prediction,
   intake: IntakeItem[],
   signal: AbortSignal,
   tone: "savage" | "gentle",
+  onProgress: (text: string) => void,
 ): Promise<string> {
   const summary = intake.map((i) =>
     `${i.name}${i.portion ? `(${PORTION_LABEL[i.portion]})` : `(${i.grams}g)`}`,
   );
-  // 与 server 35s 超时呼应；reasoning 模型思考较慢
-  const timeout = AbortSignal.any([signal, AbortSignal.timeout(40_000)]);
+  // 流式给 65s（server 上限 60s，再加 5s 网络余量）
+  const timeout = AbortSignal.any([signal, AbortSignal.timeout(65_000)]);
   // warnings & _debug 仅前端用，不送给模型
   const { warnings: _w, _debug: _d, ...payload } = prediction;
   try {
-    const res = await fetch("/api/generate-roast", {
+    const res = await fetch("/api/generate-roast?stream=1", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prediction: payload, intakeSummary: summary, tone }),
       signal: timeout,
     });
-    if (res.ok) {
-      const data = (await res.json()) as { roast?: string };
-      if (data.roast) return data.roast;
+    if (!res.ok || !res.body) return pickRoast(prediction);
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    let final: string | null = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      // SSE 事件以 \n\n 分隔
+      const events = buf.split("\n\n");
+      buf = events.pop() ?? "";
+      for (const ev of events) {
+        const line = ev.split("\n").find((l) => l.startsWith("data:"));
+        if (!line) continue;
+        const payload = line.slice(5).trim();
+        if (!payload) continue;
+        try {
+          const obj = JSON.parse(payload) as
+            | { type: "delta"; text: string }
+            | { type: "done"; text: string; source: string }
+            | { type: "error"; message: string; code: number };
+          if (obj.type === "delta" && obj.text) {
+            onProgress(obj.text);
+          } else if (obj.type === "done") {
+            final = obj.text;
+          }
+        } catch {
+          // skip malformed
+        }
+      }
     }
+    return final ?? pickRoast(prediction);
   } catch {
-    // abort / network → 兜底
+    // abort / network → 兜底（不调 onProgress，让 UI 走"AI 思考中"占位再瞬切到模板）
+    return pickRoast(prediction);
   }
-  return pickRoast(prediction);
 }

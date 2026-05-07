@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { chat, extractJson } from "@/lib/ai";
+import { chat, chatStream, extractJson, extractPartialString, AIError } from "@/lib/ai";
 import { pickRoast } from "@/lib/roasts";
 import { z } from "zod";
 import {
@@ -98,26 +98,79 @@ export async function POST(req: Request) {
     key_reasons: prediction.reasons,
   });
 
-  try {
-    const raw = await chat({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPayload },
-      ],
-      temperature: tone === "gentle" ? 0.6 : 1.0,
-      // M2.7 是 reasoning 模型：<think> 块占 ~2-2.5k token，
-      // 200 太小被 finish_reason=length 截断，所以之前 100% 走模板。
-      // 实测 3000 够 M2.7 思考完 + 输出 30-50 字 JSON
-      maxTokens: 3000,
-      responseJson: true,
-    });
+  const messages = [
+    { role: "system" as const, content: systemPrompt },
+    { role: "user" as const, content: userPayload },
+  ];
+  const temperature = tone === "gentle" ? 0.6 : 1.0;
+  // M2.7 是 reasoning 模型：<think> 块占 ~2-2.5k token，
+  // 200 太小被 finish_reason=length 截断，3000 够思考完 + 输出 30-50 字 JSON。
+  const maxTokens = 3000;
 
-    const validated = GenerateRoastResponseSchema.safeParse(extractJson(raw));
-    if (validated.success) {
-      return NextResponse.json({ roast: validated.data.roast, source: "ai" });
+  // 是否走流式：默认走（性能体感好），可通过 ?stream=0 关闭（兜底用）。
+  const wantStream = new URL(req.url).searchParams.get("stream") !== "0";
+
+  if (!wantStream) {
+    try {
+      const raw = await chat({ messages, temperature, maxTokens, responseJson: true });
+      const validated = GenerateRoastResponseSchema.safeParse(extractJson(raw));
+      if (validated.success) {
+        return NextResponse.json({ roast: validated.data.roast, source: "ai" });
+      }
+    } catch {
+      /* fall through */
     }
-  } catch {
-    // fall through to fallback
+    return NextResponse.json({ roast: fallback, source: "template" });
   }
-  return NextResponse.json({ roast: fallback, source: "template" });
+
+  // ===== 流式分支 =====
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const enc = new TextEncoder();
+      const send = (event: object) => {
+        controller.enqueue(enc.encode(`data: ${JSON.stringify(event)}\n\n`));
+      };
+      let buf = "";
+      let lastEmitted = "";
+      try {
+        for await (const delta of chatStream({
+          messages,
+          temperature,
+          maxTokens,
+          responseJson: true,
+          signal: req.signal,
+        })) {
+          buf += delta;
+          const partial = extractPartialString(buf, "roast");
+          if (partial && partial !== lastEmitted) {
+            lastEmitted = partial;
+            send({ type: "delta", text: partial });
+          }
+        }
+        // 流结束：用最终 buf 校验，校验失败则吐 fallback
+        const validated = GenerateRoastResponseSchema.safeParse(extractJson(buf));
+        if (validated.success) {
+          send({ type: "done", text: validated.data.roast, source: "ai" });
+        } else {
+          send({ type: "done", text: fallback, source: "template" });
+        }
+      } catch (err) {
+        const code = err instanceof AIError ? (err.status ?? 500) : 500;
+        send({ type: "error", message: String(err), code });
+        send({ type: "done", text: fallback, source: "template" });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      // 防止反代缓冲（Nginx / Vercel Edge）
+      "X-Accel-Buffering": "no",
+    },
+  });
 }
