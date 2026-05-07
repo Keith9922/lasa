@@ -18,6 +18,24 @@ import Credentials from "next-auth/providers/credentials";
 const githubEnabled = !!(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET);
 const demoEnabled = process.env.AUTH_DEMO !== "off";
 
+/**
+ * AUTH_SECRET 处理：
+ *  - 生产环境必须显式配置，否则 cookie 解密 / JWT 签名都跑不起来
+ *  - dev 没配的话给一个固定弱密钥，并打 warning。重启后 session 仍然有效（密钥稳定）
+ */
+const fallbackSecret = "dev-fallback-secret-please-set-AUTH_SECRET-in-prod-32+chars";
+const authSecret = process.env.AUTH_SECRET || (
+  process.env.NODE_ENV !== "production"
+    ? (() => {
+        if (process.env._LASA_AUTH_WARNED !== "1") {
+          console.warn("[lasa:auth] AUTH_SECRET 未设置，使用 dev fallback。生产环境请务必配置。");
+          process.env._LASA_AUTH_WARNED = "1";
+        }
+        return fallbackSecret;
+      })()
+    : undefined
+);
+
 const providers: NextAuthConfig["providers"] = [];
 
 if (githubEnabled) providers.push(GitHub);
@@ -47,6 +65,7 @@ if (demoEnabled) {
 
 const config: NextAuthConfig = {
   providers,
+  secret: authSecret,
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 }, // 30 天
   pages: { signIn: "/sign-in" },
   callbacks: {
