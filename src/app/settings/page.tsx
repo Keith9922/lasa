@@ -69,13 +69,13 @@ export default function SettingsPage() {
           <h3 className="settings-title">体验</h3>
           <Toggle
             label="音效"
-            sub="马桶接屎、拍立得、成就 fanfare（Web Audio 合成，零下载）"
+            sub="掉落、出卡、解锁的几声反馈音"
             checked={settings.sound}
             onChange={(v) => update({ sound: v })}
           />
           <Toggle
             label="震动"
-            sub="移动端：动效关键节点会同步震动"
+            sub="动效关键节点同步震动（仅移动端）"
             checked={settings.haptics}
             onChange={(v) => update({ haptics: v })}
           />
@@ -87,8 +87,8 @@ export default function SettingsPage() {
             name="tone"
             value={settings.tone}
             options={[
-              { value: "savage", label: "沙雕模式（默认）", sub: "原汁原味，AI 怎么贱怎么来" },
-              { value: "gentle", label: "温柔模式", sub: "AI 改成营养师视角，可以分享给爸妈/同事" },
+              { value: "savage", label: "沙雕模式（默认）", sub: "嘴贱但善意，原汁原味" },
+              { value: "gentle", label: "温柔模式", sub: "营养师视角，能转发给爸妈和同事" },
             ]}
             onChange={(v) => update({ tone: v as Settings["tone"] })}
           />
@@ -97,8 +97,8 @@ export default function SettingsPage() {
         <section className="settings-group">
           <h3 className="settings-title">校准</h3>
           <p className="settings-sub">
-            根据你的「准/不准」反馈累计微调下次预测。当前样本：<strong>{settings.calibration.samples}</strong> 次<br />
-            形态偏移：{settings.calibration.bristolBias.toFixed(2)} · 体积偏移：{settings.calibration.volumeBias.toFixed(2)}
+            根据你的「准/不准」反馈，下次预测会自动微调。<br />
+            累计反馈：<strong>{settings.calibration.samples}</strong> 次 · 形态偏移 {settings.calibration.bristolBias.toFixed(2)} · 体积偏移 {settings.calibration.volumeBias.toFixed(2)}
           </p>
         </section>
 

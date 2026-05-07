@@ -280,7 +280,7 @@ export default function HomePage() {
             <section className="hero">
               <p className="hero-eyebrow">Today In · Tomorrow Out</p>
               <h1 className="hero-title">今天吃了啥？</h1>
-              <p className="hero-sub">告诉我，我猜你明天拉啥。基于一个不太正经但有点道理的伪科学理论。</p>
+              <p className="hero-sub">输入今日饮食，伪科学算法预测明日拉啥。仅供娱乐。</p>
             </section>
 
             <div className="tabs" role="tablist" aria-label="输入方式">

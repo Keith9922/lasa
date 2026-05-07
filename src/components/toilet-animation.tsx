@@ -17,10 +17,10 @@ const DROPLET_ANGLES = [-72, -52, -30, -10, 10, 30, 52, 72] as const;
 
 /** scene 期间轮播的 loading 文案，每 ~2 秒切一条 */
 const LOADING_LINES = [
-  "computing your future…",
-  "AI 在编写吐槽…",
+  "推演你的明日剧本…",
+  "AI 正在搜罗素材…",
   "马桶在做最后估算…",
-  "稍等一下，要好了…",
+  "再等一下，要出来了…",
 ] as const;
 
 export function ToiletAnimation({ active, prediction, onComplete }: Props) {

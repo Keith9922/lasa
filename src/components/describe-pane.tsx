@@ -66,14 +66,14 @@ export function DescribePane({ onAddParsed }: Props) {
       const items: ParsedFood[] = data.items ?? [];
       const totalWaterMl: number | undefined = typeof data.totalWaterMl === "number" ? data.totalWaterMl : undefined;
       if (items.length === 0) {
-        setState({ kind: "error", message: "AI 没识别出食物，换个写法再试？" });
+        setState({ kind: "error", message: "AI 没识别到具体食物，换个说法再试？" });
         return;
       }
       onAddParsed(items, totalWaterMl);
       setText("");
       setState({ kind: "success", items });
     } catch {
-      setState({ kind: "error", message: "网络断了，待会儿再试。" });
+      setState({ kind: "error", message: "网络好像不太行，过会儿再试。" });
     }
   };
 
