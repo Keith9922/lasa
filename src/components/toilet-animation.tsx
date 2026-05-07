@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Prediction } from "@/lib/predict";
 import { COLOR_FILTER } from "@/lib/poop-color";
+import { SFX } from "@/lib/sfx";
 
 type Props = {
   active: boolean;
@@ -50,9 +51,15 @@ export function ToiletAnimation({ active, prediction, onComplete }: Props) {
     const t1 = setTimeout(() => setShake(true), 50);
     const t2 = setTimeout(() => setToiletIn(true), 250);
     const t3 = setTimeout(() => setShake(false), 430);
-    const t4 = setTimeout(() => setDrop(true), 1000);
+    const t4 = setTimeout(() => {
+      setDrop(true);
+      SFX.drop();
+    }, 1000);
     const t5 = setTimeout(() => setSplash(true), 1900);
-    const t6 = setTimeout(onComplete, 3500);
+    const t6 = setTimeout(() => {
+      SFX.polaroid();
+      onComplete();
+    }, 3500);
 
     // 文案轮播（仅视觉，scene 期间一直走）
     const loadingTimer = window.setInterval(() => {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import type { Achievement } from "@/lib/achievements";
 import { RARITY_LABEL } from "@/lib/achievements";
+import { SFX } from "@/lib/sfx";
 
 type Props = {
   achievement: Achievement | null;
@@ -27,7 +28,12 @@ export function AchievementOverlay({ achievement }: Props) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    setVisible(achievement?.rarity === "legendary");
+    if (achievement?.rarity === "legendary") {
+      setVisible(true);
+      SFX.fanfare();
+    } else {
+      setVisible(false);
+    }
   }, [achievement]);
 
   if (!achievement || achievement.rarity !== "legendary" || !visible) return null;
