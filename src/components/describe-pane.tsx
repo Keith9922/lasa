@@ -6,7 +6,7 @@ import type { ParsedFood } from "@/lib/schemas";
 
 type Props = {
   /** AI 解析成功后立即把识别结果加入摄入。父组件负责弹 toast 提示数量。 */
-  onAddParsed: (foods: ParsedFood[]) => void;
+  onAddParsed: (foods: ParsedFood[], totalWaterMl?: number) => void;
 };
 
 type ParseState =
@@ -64,11 +64,12 @@ export function DescribePane({ onAddParsed }: Props) {
       }
       const data = await res.json();
       const items: ParsedFood[] = data.items ?? [];
+      const totalWaterMl: number | undefined = typeof data.totalWaterMl === "number" ? data.totalWaterMl : undefined;
       if (items.length === 0) {
         setState({ kind: "error", message: "AI 没识别出食物，换个写法再试？" });
         return;
       }
-      onAddParsed(items);
+      onAddParsed(items, totalWaterMl);
       setText("");
       setState({ kind: "success", items });
     } catch {

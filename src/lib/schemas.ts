@@ -24,6 +24,16 @@ export const KNOWN_TAGS = new Set<string>([
   "alcohol", "caffeine", "spicy", "fast_food",
   // 染色
   "red_pigment", "dark_pigment",
+  // v2 · 水分（汤/饮料）—— 影响形态与体积
+  "hydration",        // 普通水分（白水/淡茶）
+  "hydration_high",   // 高水分（汤/粥/西瓜）
+  // v2 · 进食时间（影响传递时间到「明日」）
+  "meal_breakfast", "meal_lunch", "meal_dinner", "meal_snack", "meal_late_night",
+  // v2 · 烹饪方式
+  "raw", "boiled", "steamed", "grilled", "stewed",
+  // v2 · 益生 / 益菌
+  "probiotic",        // 酸奶、泡菜
+  "fermented",        // 发酵食品
 ]);
 
 export const ParsedFoodSchema = z.object({
@@ -53,6 +63,8 @@ export const ParsedFoodSchema = z.object({
 export const ParseMealResponseSchema = z.object({
   items: z.array(ParsedFoodSchema).min(0).max(20),
   notes: z.string().max(200).optional(),
+  /** 整餐水分估算（毫升）—— 汤/水/饮料的合计；用于形态预测 */
+  totalWaterMl: z.number().min(0).max(10_000).optional(),
 });
 
 export type ParsedFood = z.infer<typeof ParsedFoodSchema>;

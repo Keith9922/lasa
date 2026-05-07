@@ -42,7 +42,8 @@ const SYSTEM_PROMPT = `你是一个严谨的中文饮食解析器。把用户口
       "tags": ["string"]，从下方白名单挑
     }
   ],
-  "notes": "string，可选，<80 字，仅在有重要不确定项时填"
+  "notes": "string，可选，<80 字，仅在有重要不确定项时填",
+  "totalWaterMl": number，可选，整餐里水/汤/饮料/瓜果汁水的合计毫升数（仅纯液体或显性水分，不含粥饭等"半干"），用于估算肠道水合
 }
 
 # 份量估算口径（按用户没指明时的常识默认）
@@ -80,6 +81,17 @@ const SYSTEM_PROMPT = `你是一个严谨的中文饮食解析器。把用户口
 形态：vegetable, leafy_green, cruciferous, fruit, root_vegetable
 营养特征：high_fat, high_sugar, high_fiber, fried, sweet, processed
 特殊属性：alcohol, caffeine, spicy, fast_food
+水分（**所有汤/饮料/水分丰富食物都要打**）：
+  - hydration_high：汤、粥、瓜（西瓜/冬瓜/丝瓜）、椰青、果汁
+  - hydration：水、淡茶、苏打水
+进食时段（用户提到时打；模糊时不打）：
+  - meal_breakfast（早餐 6-9）
+  - meal_lunch（午餐 11-13）
+  - meal_dinner（晚餐 17-19）
+  - meal_snack（下午茶 14-16）
+  - meal_late_night（夜宵 21+）
+烹饪方式（用户提到时打）：raw, boiled, steamed, grilled, stewed
+益生 / 发酵：probiotic（酸奶、活菌饮料）、fermented（泡菜、纳豆、味噌、康普茶）
 染色（影响便便颜色，**识别到必加**，宁可错加不可漏）：
   - red_pigment：火龙果（默认按红心；明确白心才不加）、甜菜根、红心番薯、红色食用色素、大量番茄汁
   - dark_pigment：蓝莓、黑莓、桑葚、黑芝麻、黑米、铁剂、活性炭、大量黑巧克力
@@ -121,7 +133,10 @@ const SYSTEM_PROMPT = `你是一个严谨的中文饮食解析器。把用户口
 输出：{"items":[],"notes":"描述太模糊，未识别到具体食物"}
 
 输入："两瓶啤酒一份火龙果"
-输出：{"items":[{"name":"啤酒","emoji":"🍺","grams":1000,"confidence":"high","kcal":420,"carbs":36,"fiber":0,"protein":4,"fat":0,"tags":["alcohol"]},{"name":"火龙果","emoji":"🐉","grams":300,"confidence":"medium","kcal":180,"carbs":40,"fiber":9,"protein":3,"fat":0,"tags":["fruit","red_pigment"]}]}`;
+输出：{"items":[{"name":"啤酒","emoji":"🍺","grams":1000,"confidence":"high","kcal":420,"carbs":36,"fiber":0,"protein":4,"fat":0,"tags":["alcohol"]},{"name":"火龙果","emoji":"🐉","grams":300,"confidence":"medium","kcal":180,"carbs":40,"fiber":9,"protein":3,"fat":0,"tags":["fruit","red_pigment"]}],"totalWaterMl":1000}
+
+输入："早上一碗皮蛋瘦肉粥 + 中午食堂打了一份番茄牛腩饭、汤一碗"
+输出：{"items":[{"name":"皮蛋瘦肉粥","emoji":"🥣","grams":450,"confidence":"high","kcal":280,"carbs":42,"fiber":1,"protein":12,"fat":7,"tags":["staple","white_meat","hydration_high","meal_breakfast"]},{"name":"番茄牛腩饭","emoji":"🍛","grams":500,"confidence":"medium","kcal":720,"carbs":85,"fiber":4,"protein":35,"fat":24,"tags":["staple","red_meat","stewed","meal_lunch"]},{"name":"清汤","emoji":"🥣","grams":250,"confidence":"medium","kcal":40,"carbs":3,"fiber":0,"protein":3,"fat":2,"tags":["hydration_high","meal_lunch"]}],"totalWaterMl":600}`;
 
 export async function POST(req: Request) {
   let body: unknown;
