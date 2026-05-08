@@ -3347,6 +3347,70 @@ a:focus-visible,
   font-size: 11px;
 }
 
+/* GitHub 主 CTA：跟主页「开拉」按钮对齐的视觉层级 */
+.auth-oauth-primary {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: var(--sp-4);
+}
+
+/* 游客模式：次级，柔和的视觉 */
+.auth-guest {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: var(--sp-3);
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.auth-guest:hover {
+  background: var(--soft);
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+
+/* Demo provider 折叠区：明确降权，强调"非主流登录" */
+.auth-demo-details {
+  margin-top: var(--sp-4);
+  border-top: 1px dashed var(--line);
+  padding-top: var(--sp-3);
+}
+.auth-demo-summary {
+  font-size: 12px;
+  color: var(--ink-3);
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.auth-demo-summary::before {
+  content: "▸";
+  display: inline-block;
+  transition: transform 0.15s;
+}
+.auth-demo-details[open] .auth-demo-summary::before {
+  transform: rotate(90deg);
+}
+.auth-demo-note {
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.6;
+  margin: 0 0 var(--sp-2);
+}
+
 /* ===== Intake save button (custom food) ===== */
 .intake-item {
   display: inline-flex;
