@@ -74,20 +74,31 @@ export function computeStats(history: HistoryEntry[]): HistoryStats {
   const oneDayMs = 86_400_000;
   let last7Days = 0;
   let prev7Days = 0;
-  let last7Kcal = 0;
-  const last7Dates = new Set<string>();
+  /**
+   * 同一天可能多次出卡（用户加食物 / 改反馈 / 刷新预测）。
+   * 之前的实现把 last7Kcal 全部 sum / dates，导致一天 3 张时
+   * "日均 = 3 张相加" 的虚高。普通用户一眼觉得"我一天吃 5656 大卡"。
+   * 现在按日聚合 → 每天取**最大** kcal（"那天最丰盛的一次记录"代表当日总摄入），
+   * 再除以有记录的天数。
+   */
+  const last7DailyMax = new Map<string, number>();
   for (const e of history) {
     const age = now - e.timestamp;
     if (age <= 7 * oneDayMs) {
       last7Days++;
-      last7Kcal += e.totalKcal;
-      last7Dates.add(e.date);
+      const cur = last7DailyMax.get(e.date) ?? 0;
+      if (e.totalKcal > cur) last7DailyMax.set(e.date, e.totalKcal);
     } else if (age <= 14 * oneDayMs) {
       prev7Days++;
     }
   }
   const avgKcalPerDay =
-    last7Dates.size === 0 ? null : Math.round(last7Kcal / last7Dates.size);
+    last7DailyMax.size === 0
+      ? null
+      : Math.round(
+          Array.from(last7DailyMax.values()).reduce((s, v) => s + v, 0) /
+            last7DailyMax.size,
+        );
 
   // Bristol 分布
   const bristol: Record<Prediction["bristol"], number> = {

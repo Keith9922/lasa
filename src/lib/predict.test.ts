@@ -153,6 +153,33 @@ test("乳制品 + 益生菌 → 不会被推向 6（被缓冲）", () => {
   assert.ok(withProbiotic.bristol <= noProbiotic.bristol, `probiotic should buffer dairy; got ${noProbiotic.bristol} → ${withProbiotic.bristol}`);
 });
 
+test("macroRatio 四项相加恒等于 100，含酒精时 other 接住缺口", () => {
+  // 啤酒：210kcal / 18g 碳水 / 2g 蛋白 / 0g 脂肪
+  // 18*4 + 2*4 + 0*9 = 80 kcal 解释，剩 130 kcal 是酒精，约 62% other
+  const beerOnly = predict({
+    items: [
+      mk({ name: "啤酒", grams: 500, macros: { kcal: 210, carbs: 18, fiber: 0, protein: 2, fat: 0 }, tags: ["alcohol"] }),
+    ],
+  });
+  const sum = beerOnly.macroRatio.carbs + beerOnly.macroRatio.protein + beerOnly.macroRatio.fat + beerOnly.macroRatio.other;
+  assert.equal(sum, 100, `expected sum=100, got ${sum}: ${JSON.stringify(beerOnly.macroRatio)}`);
+  assert.ok(beerOnly.macroRatio.other > 50, `expected most kcal in 'other' for beer, got ${beerOnly.macroRatio.other}`);
+});
+
+test("macroRatio：无酒精饮食的 other 应为估算误差小值（<= 8%）", () => {
+  // 注：即使是"纯三大宏量"，AI/预设估算本身有 5-7% 误差（食材克数 vs 实测热量）
+  // 所以 other 阈值放宽到 8%，这跟"啤酒导致 other > 50%"的场景仍然清晰可分
+  const p = predict({
+    items: [
+      mk({ name: "鸡胸肉", grams: 200, macros: { kcal: 330, carbs: 0, fiber: 0, protein: 60, fat: 8 }, tags: ["white_meat"] }),
+      mk({ name: "米饭", grams: 200, macros: { kcal: 260, carbs: 56, fiber: 1, protein: 5, fat: 1 }, tags: ["staple"] }),
+    ],
+  });
+  const sum = p.macroRatio.carbs + p.macroRatio.protein + p.macroRatio.fat + p.macroRatio.other;
+  assert.equal(sum, 100);
+  assert.ok(p.macroRatio.other <= 8, `pure macros: other should be < 8% (估算误差), got ${p.macroRatio.other}`);
+});
+
 test("夜宵主导 → 推向偏稀", () => {
   const dinnerOnly = predict({
     items: [

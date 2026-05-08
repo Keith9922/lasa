@@ -93,6 +93,22 @@ test("最近 7 天 / 上一个 7 天窗口", () => {
   assert.equal(s.prev7Days, 1);
 });
 
+test("avgKcalPerDay：同一天多张卡只取最大值，避免重复计入", () => {
+  const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const today = new Date();
+  const yest = new Date(today.getTime() - 86_400_000);
+  const s = computeStats([
+    // 今天 3 张：1396 / 1560 / 2700 → 取 2700
+    mk({ date: ymd(today), timestamp: today.getTime(), totalKcal: 1396 }),
+    mk({ date: ymd(today), timestamp: today.getTime() - 1000, totalKcal: 1560 }),
+    mk({ date: ymd(today), timestamp: today.getTime() - 2000, totalKcal: 2700 }),
+    // 昨天 1 张：1800
+    mk({ date: ymd(yest), timestamp: yest.getTime(), totalKcal: 1800 }),
+  ]);
+  // 期望：(2700 + 1800) / 2 天 = 2250；不再是 (1396+1560+2700+1800)/2 = 3728
+  assert.equal(s.avgKcalPerDay, 2250);
+});
+
 test("便秘倾向触发观察", () => {
   const ents = Array.from({ length: 6 }, () => mk({ bristol: 1 }));
   const s = computeStats(ents);

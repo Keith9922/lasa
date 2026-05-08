@@ -109,6 +109,8 @@ export const PredictionPayloadSchema = z.object({
     carbs: z.number(),
     protein: z.number(),
     fat: z.number(),
+    /** 未被三大宏量解释的热量（主要是酒精 7kcal/g）；前端显示时 > 0 才单独渲染 */
+    other: z.number().default(0),
   }),
   totalMacros: z.object({
     kcal: z.number(),

@@ -8,11 +8,15 @@ type Props = {
 
 export function NutritionRing({ prediction }: Props) {
   const { macroRatio, totalMacros } = prediction;
-  // 段落颜色：碳水黄、蛋白红、脂肪棕
+  // 段落颜色：碳水黄、蛋白红、脂肪棕、其他（酒精/糖醇）灰
+  // other 为 0 时不渲染那一段；> 0 时三大宏量 + 其他 必然加起来 = 100。
   const segments = [
     { label: "碳水", pct: macroRatio.carbs, color: "var(--gold)" },
     { label: "蛋白", pct: macroRatio.protein, color: "var(--hot)" },
     { label: "脂肪", pct: macroRatio.fat, color: "var(--brand)" },
+    ...(macroRatio.other > 0
+      ? [{ label: "其他", pct: macroRatio.other, color: "var(--ink-3)" }]
+      : []),
   ];
 
   // SVG 圆环参数

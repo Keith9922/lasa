@@ -48,8 +48,14 @@ export type Prediction = {
   volume: Volume;
   volumeLabel: string;
   totalMacros: Macros;
-  /** 碳水/蛋白/脂肪占总热量百分比（已四舍五入，相加 = 100） */
-  macroRatio: { carbs: number; protein: number; fat: number };
+  /**
+   * 碳水/蛋白/脂肪/其他 占总热量百分比（已四舍五入，**四项相加恒等于 100**）。
+   *
+   * `other` 是"未被三大宏量解释的热量"占比，主要是酒精（7 kcal/g 但
+   * 不属于 carbs/protein/fat），少量是糖醇 / 醋酸 / 取整误差。
+   * UI 上 other > 0 时应单独成行渲染，避免视觉上"加起来不到 100"。
+   */
+  macroRatio: { carbs: number; protein: number; fat: number; other: number };
   warnings: string[];
   /** 用于科普展开 — 触发本次预测的核心因素 */
   reasons: string[];
@@ -122,7 +128,7 @@ export function predict({
       volume: "small",
       volumeLabel: VOLUME_LABELS["small"],
       totalMacros: { kcal: 0, carbs: 0, fiber: 0, protein: 0, fat: 0 },
-      macroRatio: { carbs: 0, protein: 0, fat: 0 },
+      macroRatio: { carbs: 0, protein: 0, fat: 0, other: 0 },
       warnings: [],
       reasons: ["还没吃东西，无从预测。"],
     };
@@ -314,11 +320,7 @@ export function predict({
     volume,
     volumeLabel: VOLUME_LABELS[volume],
     totalMacros: totals,
-    macroRatio: {
-      carbs: Math.round(carbsPct * 100),
-      protein: Math.round(proteinPct * 100),
-      fat: Math.round(fatPct * 100),
-    },
+    macroRatio: macroRatioInts(carbsPct, proteinPct, fatPct),
     warnings,
     reasons,
     _debug: { hydrationScore, bristolScores: biasedScores, timeProfile },
@@ -437,6 +439,35 @@ function applyBias(
     out[2] += 0.6 * -b;
   }
   return out;
+}
+
+/**
+ * 四项整数化 + 兜底：保证 carbs+protein+fat+other === 100。
+ * 取整余数全部甩到 other（最不重要那一档）。
+ *  - 三项分别 round
+ *  - other = max(0, 100 - 上面三项之和)
+ *  - 若三项已 ≥ 100（极罕见浮点累积），按比例缩到 99 再补 1 给 other
+ */
+function macroRatioInts(
+  carbsPct: number,
+  proteinPct: number,
+  fatPct: number,
+): { carbs: number; protein: number; fat: number; other: number } {
+  let c = Math.round(carbsPct * 100);
+  let p = Math.round(proteinPct * 100);
+  let f = Math.round(fatPct * 100);
+  let other = 100 - c - p - f;
+  if (other < 0) {
+    // 浮点 / 重叠估算让三项 > 100：等比例压回 99，剩 1 给 other
+    const sum = c + p + f;
+    if (sum > 0) {
+      c = Math.floor((c / sum) * 99);
+      p = Math.floor((p / sum) * 99);
+      f = Math.floor((f / sum) * 99);
+    }
+    other = 100 - c - p - f;
+  }
+  return { carbs: c, protein: p, fat: f, other };
 }
 
 function pickTopBristol(scores: Record<BristolType, number>): BristolType {
