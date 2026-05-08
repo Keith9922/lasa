@@ -26,6 +26,8 @@ const KEY = {
   achievements: "lasa.achievements.v1",
   customFoods: "lasa.customFoods.v1",
   aiCallLog: "lasa.aiCallLog.v1",
+  /** 月报缓存，key 形如 lasa.recap.2026-05；只缓存 text + 生成时间 */
+  recapPrefix: "lasa.recap.",
 } as const;
 
 const AI_CALL_LOG_MAX = 20;
@@ -353,6 +355,28 @@ function applyCalibrationFromVerdict(verdict: Verdict): void {
     cal.volumeBias *= 0.9;
   }
   patchSettings({ calibration: cal });
+}
+
+// ---------- 月报缓存 ----------
+
+export type RecapCache = {
+  period: string;
+  text: string;
+  source: "ai" | "template" | "error";
+  generatedAt: number;
+};
+
+export function getRecap(period: string): RecapCache | null {
+  return read<RecapCache | null>(`${KEY.recapPrefix}${period}`, null);
+}
+export function saveRecap(rec: RecapCache): void {
+  write(`${KEY.recapPrefix}${rec.period}`, rec);
+}
+export function clearRecap(period: string): void {
+  safe(() => {
+    window.localStorage.removeItem(`${KEY.recapPrefix}${period}`);
+    notifyMutation();
+  }, undefined);
 }
 
 // ---------- AI 调用日志 ----------

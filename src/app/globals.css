@@ -2810,6 +2810,90 @@ a:focus-visible,
   color: var(--brand-dim);
 }
 
+/* ===== Monthly Recap (insights 顶部) ===== */
+.recap-card {
+  background: linear-gradient(135deg, var(--card) 0%, var(--soft) 100%);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+.recap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.recap-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+.recap-source {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+}
+.recap-source--ai { background: rgba(184,148,74,0.18); color: var(--brand-dim); border: 1px solid rgba(184,148,74,0.4); }
+.recap-source--template { background: var(--soft); color: var(--ink-3); border: 1px solid var(--line); }
+.recap-source--error { background: rgba(197,48,48,0.1); color: var(--danger); border: 1px solid rgba(197,48,48,0.3); }
+
+.recap-empty p {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 0 0 10px;
+}
+.recap-btn {
+  width: 100%;
+}
+
+.recap-body p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+  margin: 0;
+  white-space: pre-wrap;
+}
+.recap-body--loading p {
+  color: var(--ink-2);
+  font-style: italic;
+}
+.recap-body--ai p::first-letter {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 28px;
+  float: left;
+  margin: 4px 8px 0 0;
+  color: var(--brand);
+  line-height: 1;
+}
+.recap-error {
+  color: var(--danger) !important;
+  font-size: 13px !important;
+}
+.recap-actions {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.recap-mini-btn {
+  font-size: 11px !important;
+  padding: 6px 10px !important;
+  min-height: auto !important;
+}
+.recap-time {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--ink-3);
+}
+
 /* ===== Ask Gut Modal ===== */
 .ask-gut-thread {
   display: flex;

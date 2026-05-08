@@ -12,6 +12,7 @@ import Link from "next/link";
 import { ArrowLeft, BarChart3, CalendarDays, Flame, Lightbulb, Target, Trophy } from "lucide-react";
 import { getHistory, type HistoryEntry } from "@/lib/storage";
 import { computeStats, COLOR_LABELS, COLOR_HEX } from "@/lib/stats";
+import { MonthlyRecap } from "@/components/monthly-recap";
 
 const BRISTOL_LABELS = {
   1: "硬球",
@@ -109,6 +110,8 @@ export default function InsightsPage() {
           </span>
           <span style={{ width: 56 }} />
         </header>
+
+        <MonthlyRecap />
 
         <section className="insights-summary" aria-label="总览">
           <div className="insights-card insights-card--streak" data-active={stats.streak > 0}>
