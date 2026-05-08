@@ -323,53 +323,214 @@ img { display: block; max-width: 100%; }
   max-width: 32em;
 }
 
-/* ===== Picker fold (折叠式快捷选择) =====
- * 主入口是描述输入框；这块是次要入口，默认折叠。
+/* ===== Picker trigger (触发食物选择 Modal 的轻量按钮) =====
+ * 之前是 details 折叠，撑长页面体验差。改成按钮触发 modal。
+ * 视觉权重：明显低于 textarea 主入口、低于"开拉"CTA。
  */
-.picker-fold {
-  border: 1px dashed var(--line);
-  border-radius: var(--r-md);
-  background: transparent;
-  transition: background 0.15s, border-color 0.15s;
-}
-.picker-fold[open] {
-  background: var(--soft);
-  border-style: solid;
-  border-color: var(--line);
-}
-.picker-fold-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-2);
-  user-select: none;
-  list-style: none;
-}
-.picker-fold-head::-webkit-details-marker { display: none; }
-.picker-fold-head:hover { color: var(--ink); }
-.picker-fold-text {
+.picker-trigger {
+  width: 100%;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: transparent;
+  border: 1px dashed var(--line);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.picker-fold-chip {
+.picker-trigger:hover {
+  background: var(--soft);
+  color: var(--ink);
+  border-color: var(--ink-3);
+  border-style: solid;
+}
+.picker-trigger-chip {
   font-size: 11px;
   font-weight: 500;
-  background: var(--card);
+  background: var(--soft);
   color: var(--ink-2);
   border: 1px solid var(--line);
   border-radius: var(--r-pill);
   padding: 2px 8px;
 }
-.picker-fold-body {
-  padding: 0 14px 14px;
-  border-top: 1px dashed var(--line);
-  margin-top: 4px;
-  padding-top: 12px;
+.picker-trigger:hover .picker-trigger-chip {
+  background: var(--card);
+}
+
+/* ===== Generic Modal v2 ===== */
+.modal2-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 27, 14, 0.42);
+  backdrop-filter: blur(2px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-4);
+  animation: modal2-fade-in 0.18s ease-out;
+}
+@keyframes modal2-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal2 {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-pop);
+  width: 100%;
+  max-width: 560px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modal2-pop-in 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+@keyframes modal2-pop-in {
+  from { transform: scale(0.96) translateY(8px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.modal2-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.modal2-title-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.modal2-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+.modal2-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+.modal2-subtitle {
+  font-size: 11px;
+  color: var(--ink-3);
+  background: var(--soft);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+}
+.modal2-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--ink-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.modal2-close:hover {
+  background: var(--soft);
+  color: var(--ink);
+}
+.modal2-body {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 移动端：从底部 slide up，做成 sheet */
+@media (max-width: 480px) {
+  .modal2-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal2 {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    animation: modal2-sheet-in 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes modal2-sheet-in {
+    from { transform: translateY(20%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+}
+
+/* ===== Food picker search 输入框 ===== */
+.food-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 8px 12px;
+  margin-bottom: var(--sp-3);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.food-picker-search:focus-within {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.12);
+}
+.food-picker-search > svg {
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+.food-picker-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: var(--ink);
+  outline: none;
+  min-width: 0;
+}
+.food-picker-search input::placeholder {
+  color: var(--ink-3);
+}
+.food-picker-search-clear {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--soft);
+  border: none;
+  color: var(--ink-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+.food-picker-search-clear:hover {
+  background: var(--ink-4);
+  color: var(--paper);
+}
+.food-picker-empty {
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 13px;
+  padding: var(--sp-6) var(--sp-4);
 }
 
 /* ===== Pane ===== */

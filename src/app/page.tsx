@@ -14,7 +14,6 @@ import Link from "next/link";
 import {
   BarChart3,
   BookOpen,
-  ChevronDown,
   CircleHelp,
   History as HistoryIcon,
   ListChecks,
@@ -31,12 +30,12 @@ import { pickRoast } from "@/lib/roasts";
 
 import dynamic from "next/dynamic";
 
-import { QuickPickPane } from "@/components/quick-pick-pane";
 import { DescribePane } from "@/components/describe-pane";
 import { IntakeList } from "@/components/intake-list";
 import { Toast } from "@/components/toast";
 import { YesterdayPrompt } from "@/components/yesterday-prompt";
 import { UserBadge } from "@/components/user-badge";
+import { FoodPickerModal } from "@/components/food-picker-modal";
 
 /**
  * 重组件按需加载：
@@ -84,6 +83,7 @@ export default function HomePage() {
   const [pending, setPending] = useState<HistoryEntry | null>(null);
   const [dexCount, setDexCount] = useState(0);
   const [customFoods, setCustomFoods] = useState<PresetFood[]>([]);
+  /** 食物选择 Modal 开关 */
   const [pickerOpen, setPickerOpen] = useState(false);
   /** AI 解析时 server 估算的整餐水分（毫升）；用于预测引擎水合维度 */
   const [extraWaterMl, setExtraWaterMl] = useState(0);
@@ -345,37 +345,17 @@ export default function HomePage() {
               onSaveAsCustom={handleSaveAsCustom}
             />
 
-            <details
-              className="picker-fold"
-              open={pickerOpen}
-              onToggle={(e) => setPickerOpen((e.target as HTMLDetailsElement).open)}
+            <button
+              type="button"
+              className="picker-trigger"
+              onClick={() => setPickerOpen(true)}
             >
-              <summary className="picker-fold-head" aria-expanded={pickerOpen}>
-                <span className="picker-fold-text">
-                  <ListChecks size={14} aria-hidden />
-                  <span>不想打字？也可以挑几个常吃的</span>
-                  {customFoods.length > 0 && (
-                    <span className="picker-fold-chip">{customFoods.length} 项常用</span>
-                  )}
-                </span>
-                <ChevronDown
-                  size={14}
-                  aria-hidden
-                  style={{
-                    transform: pickerOpen ? "rotate(180deg)" : "none",
-                    transition: "transform .18s",
-                  }}
-                />
-              </summary>
-              <div className="picker-fold-body">
-                <QuickPickPane
-                  intake={intake}
-                  onToggle={togglePreset}
-                  onCyclePortion={cyclePortion}
-                  customFoods={customFoods}
-                />
-              </div>
-            </details>
+              <ListChecks size={14} aria-hidden />
+              <span>不想打字？挑几个常吃的</span>
+              {customFoods.length > 0 && (
+                <span className="picker-trigger-chip">{customFoods.length} 项常用</span>
+              )}
+            </button>
 
             <div className="cta-wrap">
               <button
@@ -408,6 +388,14 @@ export default function HomePage() {
       />
 
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <FoodPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        intake={intake}
+        onToggle={togglePreset}
+        onCyclePortion={cyclePortion}
+        customFoods={customFoods}
+      />
       <Toast message={toast.msg} show={toast.show} />
     </main>
   );
