@@ -168,7 +168,7 @@ export default function SettingsPage() {
           <h3 className="settings-title">云端同步</h3>
           {authStatus !== "authenticated" ? (
             <p className="settings-sub">
-              <Link href="/sign-in?callbackUrl=/settings">登录</Link>后可在多台设备间同步历史和设置。
+              <Link className="settings-inline-link" href="/sign-in?callbackUrl=/settings">登录</Link>后可在多台设备间同步历史和设置。
               不登录也能用，所有数据存在本地。
             </p>
           ) : (
@@ -246,7 +246,7 @@ export default function SettingsPage() {
             <Download size={14} aria-hidden /> 导出我的数据（JSON）
           </button>
           <button
-            className="btn-secondary settings-btn"
+            className="btn-ghost settings-btn"
             type="button"
             onClick={() => importInputRef.current?.click()}
           >

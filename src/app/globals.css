@@ -1321,8 +1321,20 @@ img { display: block; max-width: 100%; }
   color: var(--brand);
   opacity: 0.55;
   animation: stink 2.6s ease-in-out infinite;
+  /* 稀有度 pill 落在 stink 上方时应被压在下面（rarity 有 z-index:1） */
+  z-index: 0;
+  pointer-events: none;
 }
 
+/*
+ * 稀有度徽章存在时，把 stink 推到右半边，避免和 pill 视觉撞车
+ * （pill 在 polaroid-photo 顶部 left-aligned，左半 ~50% 宽度）
+ */
+.polaroid-photo:has(.polaroid-rarity) .stink:nth-child(1) { left: 60%; top: 10px; animation-delay: 0s; }
+.polaroid-photo:has(.polaroid-rarity) .stink:nth-child(2) { left: 75%; top: 16px; animation-delay: 0.6s; }
+.polaroid-photo:has(.polaroid-rarity) .stink:nth-child(3) { left: 88%; top: 12px; animation-delay: 1.2s; }
+
+/* 默认（无 pill 时）三个 stink 横向均匀分布 */
 .stink:nth-child(1) { left: 28%; top: 10px; animation-delay: 0s; }
 .stink:nth-child(2) { left: 50%; top: 16px; animation-delay: 0.6s; }
 .stink:nth-child(3) { left: 70%; top: 12px; animation-delay: 1.2s; }
@@ -1588,6 +1600,35 @@ img { display: block; max-width: 100%; }
 
 .btn-secondary:hover { background: var(--hot); color: var(--paper); }
 .btn-secondary:active { transform: scale(0.98); }
+
+/*
+ * 弱按钮：用于"导入"这种次要的辅助动作。
+ * 仍然在视觉权重上低于 .btn-secondary（导出/分享）和 .btn-danger（清空）。
+ */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 18px;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  background: var(--soft);
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+.btn-ghost:active { transform: scale(0.98); }
+.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ===== Help modal ===== */
 .modal-backdrop {
@@ -2486,6 +2527,17 @@ a:focus-visible,
 }
 @media (max-width: 480px) {
   .empty-illustration { width: 160px; }
+}
+
+/* settings inline link —— 普通段落里嵌"登录"等动作链接，需要醒目可达 */
+.settings-inline-link {
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 600;
+}
+.settings-inline-link:hover {
+  color: var(--brand-dim);
 }
 
 /* ===== Settings: cloud sync actions ===== */

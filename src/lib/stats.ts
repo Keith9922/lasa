@@ -128,7 +128,9 @@ export function computeStats(history: HistoryEntry[]): HistoryStats {
       else foodMap.set(key, { name: it.name, emoji: it.emoji, count: 1 });
     }
   }
+  // 数据稀疏时（每项都 ×1）"Top 5"称呼显得无意义，过滤 ≥2 才计入
   const topFoods = Array.from(foodMap.values())
+    .filter((f) => f.count >= 2)
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 

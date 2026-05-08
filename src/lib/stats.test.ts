@@ -70,12 +70,14 @@ test("颜色分布排除 normal", () => {
   assert.equal(s.topColors[0].count, 2);
 });
 
-test("食物 top 排序", () => {
+test("食物 top 排序：只统计 count >= 2 的项，避免数据稀疏时虚假 Top", () => {
   const s = computeStats([
     mk({ intake: [{ id: "a", emoji: "🍕", name: "披萨", grams: 200, source: "preset" }] }),
     mk({ intake: [{ id: "a", emoji: "🍕", name: "披萨", grams: 200, source: "preset" }] }),
     mk({ intake: [{ id: "b", emoji: "🍔", name: "汉堡", grams: 200, source: "preset" }] }),
   ]);
+  // 披萨 ×2 入榜；汉堡 ×1 不入榜
+  assert.equal(s.topFoods.length, 1);
   assert.equal(s.topFoods[0].name, "披萨");
   assert.equal(s.topFoods[0].count, 2);
 });
