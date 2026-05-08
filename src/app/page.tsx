@@ -1,17 +1,27 @@
 "use client";
 
 /**
- * 拉啥 · 主页面（v0.2）
+ * 拉啥 · 主页面（v2.1）
  *
- * 状态机：input → animating → result，单页内切换。
- * 详细见 docs/interaction.md / docs/animation.md
+ * 信息架构：
+ *  - **主入口是描述输入**：用户进来就看到大 textarea，让 AI 解析自然语言
+ *  - 想偷懒挑预设的话，下方折叠区可展开 23 个预设 +「我的常用」
+ *  - 删掉旧的 Tab 切换 + 「随便来一顿」入口（用户吃啥是确定事实，随机违反产品逻辑）
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BarChart3, BookOpen, CircleHelp, History as HistoryIcon, ListChecks, Pencil, Settings as SettingsIcon } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  ChevronDown,
+  CircleHelp,
+  History as HistoryIcon,
+  ListChecks,
+  Settings as SettingsIcon,
+} from "lucide-react";
 
-import { PORTION_LABEL, PRESET_FOODS, getFoodById, type PortionLevel, type PresetFood } from "@/lib/foods";
+import { PORTION_LABEL, getFoodById, type PortionLevel, type PresetFood } from "@/lib/foods";
 import { intakeFromPreset, intakeFromAi } from "@/lib/intake";
 import { predict, type Prediction } from "@/lib/predict";
 import { pickAchievement, type Achievement } from "@/lib/achievements";
@@ -55,10 +65,9 @@ import {
   getCustomFoods,
   saveCustomFood,
   customFoodToPresetShape,
+  onStorageMutation,
   type HistoryEntry,
 } from "@/lib/storage";
-
-type TabKey = "quick" | "describe";
 
 type Phase =
   | { kind: "input" }
@@ -68,7 +77,6 @@ type Phase =
 const PORTION_CYCLE: PortionLevel[] = ["normal", "large", "huge", "small"];
 
 export default function HomePage() {
-  const [tab, setTab] = useState<TabKey>("quick");
   const [intake, setIntake] = useState<Record<string, IntakeItem>>({});
   const [phase, setPhase] = useState<Phase>({ kind: "input" });
   const [helpOpen, setHelpOpen] = useState(false);
@@ -76,6 +84,7 @@ export default function HomePage() {
   const [pending, setPending] = useState<HistoryEntry | null>(null);
   const [dexCount, setDexCount] = useState(0);
   const [customFoods, setCustomFoods] = useState<PresetFood[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
   /** AI 解析时 server 估算的整餐水分（毫升）；用于预测引擎水合维度 */
   const [extraWaterMl, setExtraWaterMl] = useState(0);
   const toastTimer = useRef<number | null>(null);
@@ -96,17 +105,33 @@ export default function HomePage() {
     roastRef.current?.abort.abort();
   }, []);
 
-  // 入站时拉一次：待反馈条 / 图鉴解锁数 / 用户常用食物
+  /**
+   * 入站时拉一次 + 订阅本地变更：出卡后自动刷"图鉴 N/49"徽章 + 常用食物。
+   * 之前只在 mount 跑一次，所以出卡解锁新格子但徽章不动 —— 是 UAT 提的中等问题。
+   */
   useEffect(() => {
-    setPending(findPendingVerdict());
-    setDexCount(getDex().length);
-    setCustomFoods(getCustomFoods().map(customFoodToPresetShape));
+    const refresh = () => {
+      setPending(findPendingVerdict());
+      setDexCount(getDex().length);
+      setCustomFoods(getCustomFoods().map(customFoodToPresetShape));
+    };
+    refresh();
+    const unsub = onStorageMutation(refresh);
+    return unsub;
   }, []);
 
   const savedFoodNames = useMemo(
     () => new Set(customFoods.map((f) => f.name)),
     [customFoods],
   );
+
+  const showToast = useCallback((msg: string) => {
+    setToast({ msg, show: true });
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => {
+      setToast((t) => ({ ...t, show: false }));
+    }, 2200);
+  }, []);
 
   const handleSaveAsCustom = useCallback((item: IntakeItem) => {
     if (item.source !== "ai") return;
@@ -129,9 +154,7 @@ export default function HomePage() {
       ...prev.filter((f) => f.name !== saved.name),
     ]);
     showToast(`已保存「${saved.name}」到常用`);
-  // showToast 是 useCallback；savedFoodNames / saved.name 不需要进 deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedFoodNames]);
+  }, [savedFoodNames, showToast]);
 
   // ---- handlers ----
 
@@ -148,7 +171,10 @@ export default function HomePage() {
     setIntake((prev) => {
       const item = prev[foodId];
       if (!item?.portion) return prev;
-      const food = getFoodById(foodId);
+      // 自定义食物：从 customFoods 里找；预设：getFoodById 找
+      const food =
+        getFoodById(foodId) ??
+        customFoods.find((f) => f.id === foodId);
       if (!food) return prev;
       const idx = PORTION_CYCLE.indexOf(item.portion);
       const nextLevel = PORTION_CYCLE[(idx + 1) % PORTION_CYCLE.length];
@@ -167,6 +193,7 @@ export default function HomePage() {
   const clearIntake = () => {
     if (intakeList.length === 0) return;
     setIntake({});
+    setExtraWaterMl(0);
   };
 
   const addParsed = (foods: ParsedFood[], totalWaterMl?: number) => {
@@ -182,23 +209,12 @@ export default function HomePage() {
       setExtraWaterMl((prev) => prev + totalWaterMl);
     }
     showToast(`已加入 ${foods.length} 项`);
-    // 留在描述 Tab，让用户能继续追加 — describe-pane 自身会显示"已识别"提示
   };
-
-  const showToast = useCallback((msg: string) => {
-    setToast({ msg, show: true });
-    if (toastTimer.current) window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => {
-      setToast((t) => ({ ...t, show: false }));
-    }, 2200);
-  }, []);
 
   const startRoastStream = (prediction: Prediction, items: IntakeItem[], tone: "savage" | "gentle") => {
     const abort = new AbortController();
     const ctx = { prediction, abort, latest: "" };
     roastRef.current = ctx;
-    // 同步流到 UI：只有当前 phase.prediction === ctx.prediction 时推进，
-    // 用户中途 reset 后引用变化，setState 自动忽略。
     streamRoast(prediction, items, abort.signal, tone, (text) => {
       ctx.latest = text;
       setPhase((prev) =>
@@ -233,7 +249,6 @@ export default function HomePage() {
   const handleAnimationComplete = useCallback(() => {
     if (phase.kind !== "animating") return;
     const { prediction, achievement } = phase;
-    // 写入历史 / 图鉴 / 成就（同步本地，纯加法不阻塞 UI）
     try {
       recordCard({
         prediction,
@@ -249,54 +264,17 @@ export default function HomePage() {
             : undefined,
       });
     } catch (err) {
-      // localStorage 满 / 隐私模式禁用 → 不影响主流程
       console.warn("[storage] recordCard failed", err);
     }
-    // 用流式当前累积值当初始 roast；后续 delta 会通过 setPhase 持续推进
     const initialRoast = roastRef.current?.latest ?? "";
     setPhase({ kind: "result", prediction, roast: initialRoast, achievement });
   }, [phase, intakeList]);
-
-  /** 「随便给我来一份」—— 随机抽 2-3 项预设走完流程，零门槛体验首次出卡 */
-  const handleSurprise = () => {
-    // 从 main 类挑 1 个，其它类各挑 0-1 个，确保有反差
-    const byCategory = (cat: PresetFood["category"]) =>
-      PRESET_FOODS.filter((f) => f.category === cat);
-    const sample = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]!;
-    const picks: PresetFood[] = [
-      sample(byCategory("main")),
-      sample(byCategory("drink")),
-    ];
-    if (Math.random() < 0.5) picks.push(sample(byCategory("fruit")));
-    const next: Record<string, IntakeItem> = {};
-    picks.forEach((f) => {
-      const portion = (Math.random() < 0.4 ? "large" : "normal") as PortionLevel;
-      next[f.id] = intakeFromPreset(f, portion);
-    });
-    setIntake(next);
-    showToast("已随机来一顿，自动开拉…");
-    // 给一帧让 setIntake 落地，再 start
-    setTimeout(() => {
-      const items = Object.values(next);
-      if (items.length === 0) return;
-      const settings = getSettings();
-      const prediction = predict({
-        items,
-        bristolBias: settings.calibration.bristolBias,
-        volumeBias: settings.calibration.volumeBias,
-      });
-      const achievement = pickAchievement(prediction, items);
-      startRoastStream(prediction, items, settings.tone);
-      setPhase({ kind: "animating", prediction, achievement });
-    }, 50);
-  };
 
   const handleReset = () => {
     roastRef.current?.abort.abort();
     roastRef.current = null;
     setIntake({});
     setExtraWaterMl(0);
-    setTab("quick");
     setPhase({ kind: "input" });
   };
 
@@ -315,22 +293,30 @@ export default function HomePage() {
               <div className="brand-actions">
                 <Link className="icon-btn" href="/dex" aria-label="图鉴">
                   <BookOpen size={14} aria-hidden />
-                  <span>图鉴 {dexCount > 0 ? `${dexCount}/49` : ""}</span>
+                  <span className="icon-btn-label">
+                    图鉴{dexCount > 0 ? ` ${dexCount}/49` : ""}
+                  </span>
                 </Link>
                 <Link className="icon-btn" href="/history" aria-label="日记">
                   <HistoryIcon size={14} aria-hidden />
-                  <span>日记</span>
+                  <span className="icon-btn-label">日记</span>
                 </Link>
                 <Link className="icon-btn" href="/insights" aria-label="趋势">
                   <BarChart3 size={14} aria-hidden />
-                  <span>趋势</span>
+                  <span className="icon-btn-label">趋势</span>
                 </Link>
-                <Link className="icon-btn" href="/settings" aria-label="设置">
+                <Link className="icon-btn icon-btn--icon-only" href="/settings" aria-label="设置">
                   <SettingsIcon size={14} aria-hidden />
                 </Link>
-                <button className="icon-btn" type="button" onClick={() => setHelpOpen(true)} aria-label="怎么玩">
+                <button
+                  className="icon-btn icon-btn--icon-only-mobile"
+                  type="button"
+                  onClick={() => setHelpOpen(true)}
+                  aria-label="怎么玩"
+                  title="怎么玩"
+                >
                   <CircleHelp size={14} aria-hidden />
-                  <span>怎么玩</span>
+                  <span className="icon-btn-label">怎么玩</span>
                 </button>
                 <UserBadge />
               </div>
@@ -346,42 +332,10 @@ export default function HomePage() {
             <section className="hero">
               <p className="hero-eyebrow">Today In · Tomorrow Out</p>
               <h1 className="hero-title">今天吃了啥？</h1>
-              <p className="hero-sub">输入今日饮食，伪科学算法预测明日拉啥。仅供娱乐。</p>
+              <p className="hero-sub">直接说就行——AI 会帮你拆解、估算热量、预测明天的便便。</p>
             </section>
 
-            <div className="tabs" role="tablist" aria-label="输入方式">
-              <button
-                className="tab"
-                data-active={tab === "quick"}
-                onClick={() => setTab("quick")}
-                role="tab"
-                aria-selected={tab === "quick"}
-                type="button"
-              >
-                <ListChecks size={14} aria-hidden /> 快捷选择
-              </button>
-              <button
-                className="tab"
-                data-active={tab === "describe"}
-                onClick={() => setTab("describe")}
-                role="tab"
-                aria-selected={tab === "describe"}
-                type="button"
-              >
-                <Pencil size={14} aria-hidden /> 描述一下
-              </button>
-            </div>
-
-            {tab === "quick" ? (
-              <QuickPickPane
-                intake={intake}
-                onToggle={togglePreset}
-                onCyclePortion={cyclePortion}
-                customFoods={customFoods}
-              />
-            ) : (
-              <DescribePane onAddParsed={addParsed} />
-            )}
+            <DescribePane onAddParsed={addParsed} />
 
             <IntakeList
               items={intakeList}
@@ -391,24 +345,48 @@ export default function HomePage() {
               onSaveAsCustom={handleSaveAsCustom}
             />
 
+            <details
+              className="picker-fold"
+              open={pickerOpen}
+              onToggle={(e) => setPickerOpen((e.target as HTMLDetailsElement).open)}
+            >
+              <summary className="picker-fold-head" aria-expanded={pickerOpen}>
+                <span className="picker-fold-text">
+                  <ListChecks size={14} aria-hidden />
+                  <span>不想打字？也可以挑几个常吃的</span>
+                  {customFoods.length > 0 && (
+                    <span className="picker-fold-chip">{customFoods.length} 项常用</span>
+                  )}
+                </span>
+                <ChevronDown
+                  size={14}
+                  aria-hidden
+                  style={{
+                    transform: pickerOpen ? "rotate(180deg)" : "none",
+                    transition: "transform .18s",
+                  }}
+                />
+              </summary>
+              <div className="picker-fold-body">
+                <QuickPickPane
+                  intake={intake}
+                  onToggle={togglePreset}
+                  onCyclePortion={cyclePortion}
+                  customFoods={customFoods}
+                />
+              </div>
+            </details>
+
             <div className="cta-wrap">
               <button
                 className="cta"
                 type="button"
                 onClick={handleStart}
                 disabled={intakeList.length === 0}
+                aria-disabled={intakeList.length === 0}
               >
-                {intakeList.length === 0 ? "先选点吃的" : "开 拉"}
+                {intakeList.length === 0 ? "先告诉我今天吃了啥" : "开 拉"}
               </button>
-              {intakeList.length === 0 && (
-                <button
-                  className="cta-secondary"
-                  type="button"
-                  onClick={handleSurprise}
-                >
-                  🎲 随便来一顿，看会拉啥
-                </button>
-              )}
               <p className="disclaimer">仅供娱乐 · 不构成医学建议</p>
             </div>
           </>
@@ -454,9 +432,7 @@ async function streamRoast(
   const summary = intake.map((i) =>
     `${i.name}${i.portion ? `(${PORTION_LABEL[i.portion]})` : `(${i.grams}g)`}`,
   );
-  // 流式给 65s（server 上限 60s，再加 5s 网络余量）
   const timeout = AbortSignal.any([signal, AbortSignal.timeout(65_000)]);
-  // warnings & _debug 仅前端用，不送给模型
   const { warnings: _w, _debug: _d, ...payload } = prediction;
   try {
     const res = await fetch("/api/generate-roast?stream=1", {
@@ -475,7 +451,6 @@ async function streamRoast(
       const { done, value } = await reader.read();
       if (done) break;
       buf += decoder.decode(value, { stream: true });
-      // SSE 事件以 \n\n 分隔
       const events = buf.split("\n\n");
       buf = events.pop() ?? "";
       for (const ev of events) {
@@ -500,7 +475,6 @@ async function streamRoast(
     }
     return final ?? pickRoast(prediction);
   } catch {
-    // abort / network → 兜底（不调 onProgress，让 UI 走"AI 思考中"占位再瞬切到模板）
     return pickRoast(prediction);
   }
 }
