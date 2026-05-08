@@ -195,6 +195,14 @@ export function appendHistory(entry: HistoryEntry): HistoryEntry[] {
   return next;
 }
 
+/** 删除某一条历史记录（按 timestamp 精准匹配） */
+export function removeHistoryEntry(timestamp: number): HistoryEntry[] {
+  const list = getHistory();
+  const next = list.filter((e) => e.timestamp !== timestamp);
+  write(KEY.history, next);
+  return next;
+}
+
 /** 给最近一条历史打上"准/不准"反馈 */
 export function setVerdict(timestamp: number, verdict: Verdict, note?: string): HistoryEntry[] {
   const list = getHistory();

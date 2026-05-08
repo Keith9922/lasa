@@ -13,14 +13,15 @@ import type { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
+// edge runtime 不能 import lib/stats（拉太多依赖）；保持手动同步
 const COLOR_HEX: Record<string, string> = {
-  normal: "#6F4E37",
-  dark: "#3E2723",
-  yellow: "#A0834C",
-  pale: "#C4B089",
-  green: "#5A5E2E",
-  red: "#5C3025",
-  black: "#1F1410",
+  normal: "#7E5A3F",
+  dark: "#2A1610",
+  yellow: "#B8954A",
+  pale: "#DDC7A0",
+  green: "#6B7D3A",
+  red: "#74281C",
+  black: "#14080A",
 };
 
 const COLOR_FILTER: Record<string, string> = {

@@ -38,12 +38,8 @@ export function DescribePane({ onAddParsed }: Props) {
     return () => window.clearInterval(id);
   }, [state.kind]);
 
-  // 成功提示 5 秒后自动消失
-  useEffect(() => {
-    if (state.kind !== "success") return;
-    const t = window.setTimeout(() => setState({ kind: "idle" }), 5000);
-    return () => window.clearTimeout(t);
-  }, [state]);
+  // 成功提示一直保留到用户开始下一轮编辑（修改输入框 / 再次点击）
+  // —— 之前 5s 自动消失太短，用户走神就错过反馈，质疑"AI 真的解析了吗"
 
   const handleParse = async () => {
     const trimmed = text.trim();
@@ -70,21 +66,30 @@ export function DescribePane({ onAddParsed }: Props) {
         return;
       }
       onAddParsed(items, totalWaterMl);
-      setText("");
+      // 不再清空 textarea：让用户能看到"我刚打的字被解析成了这些"
+      // 用户继续追加 / 修改时，下面 onChange 自动把 success 切回 idle
       setState({ kind: "success", items });
     } catch {
       setState({ kind: "error", message: "网络好像不太行，过会儿再试。" });
     }
   };
 
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+    // 用户开始改 → success/error 都回 idle，让"AI 解析并加入"按钮重新可点
+    if (state.kind === "success" || state.kind === "error") {
+      setState({ kind: "idle" });
+    }
+  };
+
   return (
     <section className="pane describe" aria-label="自然语言描述">
-      <p className="pane-hint">越详细越准。识别完成会自动加入摄入清单，可以继续追加。</p>
+      <p className="pane-hint">越详细越准。识别完成会自动加入摄入清单，输入保留，可以继续追加。</p>
       <textarea
         className="describe-textarea"
         placeholder="例如：中午火锅吃了两盘肥牛、一盘青菜、清汤锅，喝了一瓶啤酒，最后一份红糖糍粑。"
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={handleTextChange}
         rows={6}
         maxLength={800}
         disabled={state.kind === "loading"}

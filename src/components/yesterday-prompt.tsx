@@ -11,15 +11,7 @@ import { useState } from "react";
 import { Check, Minus, X } from "lucide-react";
 import { setVerdict, type HistoryEntry, type Verdict } from "@/lib/storage";
 
-const COLOR_HEX: Record<HistoryEntry["color"], string> = {
-  normal: "#6F4E37",
-  dark: "#3E2723",
-  yellow: "#A0834C",
-  pale: "#C4B089",
-  green: "#5A5E2E",
-  red: "#5C3025",
-  black: "#1F1410",
-};
+import { COLOR_HEX } from "@/lib/stats";
 
 type Props = {
   entry: HistoryEntry;

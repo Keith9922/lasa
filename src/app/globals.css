@@ -25,13 +25,18 @@
   --danger: #C53030;
 
   /* 便便色（写实，闷调） */
-  --c-normal: #6F4E37;
-  --c-dark: #3E2723;
-  --c-yellow: #A0834C;
-  --c-pale: #C4B089;
-  --c-green: #5A5E2E;
-  --c-red: #5C3025;
-  --c-black: #1F1410;
+  /*
+   * 7 档便便色 — 调大相邻档之间的色相 / 明度差，方便色弱用户辨识。
+   * UAT 反馈："正常棕"和"灰白"swatch 不容易区分。
+   * 调整重点：normal 加亮、pale 提亮 + 偏暖、red 强化红、black 拉到接近 0。
+   */
+  --c-normal: #7E5A3F;   /* 比之前略暖、略亮 */
+  --c-dark:   #2A1610;   /* 暗，但留给 black 更暗 */
+  --c-yellow: #B8954A;   /* 黄褐，更黄 */
+  --c-pale:   #DDC7A0;   /* 杏色，明显亮起来 */
+  --c-green:  #6B7D3A;   /* 绿褐，更绿 */
+  --c-red:    #74281C;   /* 暗红，强化红 */
+  --c-black:  #14080A;   /* 接近真黑 */
 
   /* ===== 间距 ===== */
   --sp-1: 4px;
@@ -998,19 +1003,24 @@ img { display: block; max-width: 100%; }
 }
 
 .scene-loading {
+  /*
+   * 之前贴在 scene-stage 底部 -28px，视口稍矮就完全看不到（UAT 反馈）。
+   * 现在挪到 stage 顶部，加大字号 + 加粗到 15px，确保 3.5s 期间用户能看到。
+   */
   position: absolute;
-  bottom: -28px;
+  top: -36px;
   left: 50%;
   transform: translateX(-50%);
-  font-family: var(--font-display);
-  font-style: italic;
   font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink-3);
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
   white-space: nowrap;
   animation: scene-loading-pulse 2.2s ease-in-out infinite;
+  text-shadow: 0 1px 0 var(--paper);
+}
+@media (max-width: 480px) {
+  .scene-loading { font-size: 13px; top: -28px; }
 }
 
 @keyframes scene-loading-pulse {
@@ -2095,6 +2105,57 @@ img { display: block; max-width: 100%; }
   border-radius: var(--r-md);
   box-shadow: var(--sh-card);
   border: 1px solid var(--line);
+  position: relative;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+/* 待反馈：左侧加 hot 色边条提醒"还没填" */
+.history-card[data-pending="true"] {
+  border-left: 3px solid var(--hot);
+  background: linear-gradient(90deg, rgba(231, 111, 81, 0.05) 0%, var(--card) 30%);
+}
+
+.history-pending-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  background: var(--hot);
+  color: #fff;
+  border-radius: var(--r-pill);
+  margin-left: 6px;
+}
+
+.history-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  opacity: 0;
+}
+.history-card:hover .history-delete,
+.history-card:focus-within .history-delete {
+  opacity: 1;
+}
+.history-delete:hover {
+  background: var(--soft);
+  color: var(--danger);
+}
+.history-delete:focus-visible { opacity: 1; }
+/* 触屏没有 hover，永远显示 */
+@media (hover: none) {
+  .history-delete { opacity: 0.4; }
+  .history-delete:active { opacity: 1; }
 }
 
 .history-meta {
@@ -2203,11 +2264,13 @@ img { display: block; max-width: 100%; }
 }
 
 .dex-color-swatch {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.18);
+  /* 浅色下加深描边 + 内阴影：色弱用户和浅背景下更易辨识 */
+  border: 1px solid rgba(45, 27, 14, 0.35);
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.22);
 }
 
 .dex-row-head-label {
@@ -2685,11 +2748,14 @@ a:focus-visible,
 .intake-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  /* 拉开和 chip 的距离，避免视觉粘连，第一眼就能识别为独立动作 */
+  gap: 8px;
+  /* 给星标按钮提供 tooltip 空间，hover 时不被相邻 chip 截断 */
+  position: relative;
 }
 .intake-save {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: 1px dashed var(--brand);
   background: transparent;
@@ -2698,16 +2764,40 @@ a:focus-visible,
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, transform 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.15s, border-style 0.15s;
 }
 .intake-save:hover {
   background: var(--brand);
   color: white;
   transform: scale(1.08);
+  border-style: solid;
 }
 .intake-save:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
+}
+
+/* hover tooltip：解释这个虚线圆是干啥的 */
+.intake-save::after {
+  content: "保存为常用";
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 4px 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 11px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.intake-save:hover::after,
+.intake-save:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 /* 自定义食物卡片视觉 —— 和系统预设区分一下 */
