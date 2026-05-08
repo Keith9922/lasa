@@ -60,6 +60,11 @@ export type HistoryEntry = {
   smell: number;
   volume: Prediction["volume"];
   totalKcal: number;
+  /**
+   * 总纤维（克）—— 健康分 + 「纤维大师」成就的关键指标
+   * 旧记录可能没有这个字段（schema 在健康转向时加入），缺失视作 0。
+   */
+  totalFiber?: number;
   /** 用户摄入快照 */
   intake: IntakeSnapshot[];
   /** 触发的成就 id（若有）*/
@@ -487,6 +492,8 @@ export function recordCard({ prediction, intake, achievement }: RecordCardInput)
     smell: prediction.smell,
     volume: prediction.volume,
     totalKcal: Math.round(prediction.totalMacros.kcal),
+    // 纤维四舍五入到 0.1g —— 健康分需要它判"纤维达标日"
+    totalFiber: Math.round(prediction.totalMacros.fiber * 10) / 10,
     intake: intake.map((i) => ({
       id: i.id,
       emoji: i.emoji,

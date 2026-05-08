@@ -4,7 +4,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { computeStats } from "./stats";
+import { computeStats, computeHealthScore } from "./stats";
 import type { HistoryEntry } from "./storage";
 
 function mk(partial: Partial<HistoryEntry>): HistoryEntry {
@@ -109,6 +109,51 @@ test("avgKcalPerDay：同一天多张卡只取最大值，避免重复计入", (
   ]);
   // 期望：(2700 + 1800) / 2 天 = 2250；不再是 (1396+1560+2700+1800)/2 = 3728
   assert.equal(s.avgKcalPerDay, 2250);
+});
+
+test("computeHealthScore：空 history → null", () => {
+assert.equal(computeHealthScore([]), null);
+});
+
+test("computeHealthScore：理想型连续 7 天 → 接近满分", () => {
+const ymdDate = (off: number) => {
+    const d = new Date(Date.now() - off * 86_400_000);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  // 7 天，每天一张 Bristol 4 / normal / fiber 25g + 反馈 accurate
+  const entries = Array.from({ length: 7 }, (_, i) =>
+    mk({
+      date: ymdDate(i),
+      timestamp: Date.now() - i * 86_400_000,
+      bristol: 4,
+      color: "normal",
+      totalFiber: 25,
+      verdict: "accurate",
+    }),
+  );
+  const s = computeHealthScore(entries);
+  assert.ok(s);
+  assert.ok(s.total >= 95, `expected near-100, got ${s.total}`);
+});
+
+test("computeHealthScore：全是异常 Type 1 + 颜色异常 → 低分", () => {
+const ymdDate = (off: number) => {
+    const d = new Date(Date.now() - off * 86_400_000);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const entries = Array.from({ length: 7 }, (_, i) =>
+    mk({
+      date: ymdDate(i),
+      timestamp: Date.now() - i * 86_400_000,
+      bristol: 1,
+      color: "dark",
+      totalFiber: 3,
+    }),
+  );
+  const s = computeHealthScore(entries);
+  assert.ok(s);
+  // bristol 0 + color 0 + fiber 0 + frequency 15 + accuracy 8 ≈ 23
+  assert.ok(s.total < 40, `expected low, got ${s.total}`);
 });
 
 test("便秘倾向触发观察", () => {

@@ -15,6 +15,7 @@ import {
   BarChart3,
   BookOpen,
   CircleHelp,
+  Heart,
   History as HistoryIcon,
   ListChecks,
   MessageCircle,
@@ -61,7 +62,7 @@ const HelpModal = dynamic(
 import {
   recordCard,
   findPendingVerdict,
-  getDex,
+  getHistory,
   getAchievements,
   getSettings,
   getCustomFoods,
@@ -72,7 +73,8 @@ import {
   logAICall,
   type HistoryEntry,
 } from "@/lib/storage";
-import { computeBingo, diffNewBingos } from "@/lib/bingo";
+import { computeHealthScore } from "@/lib/stats";
+import { detectHealthAchievements } from "@/lib/health-track";
 
 export type RoastSource = "ai" | "template" | "error";
 
@@ -96,7 +98,8 @@ export default function HomePage() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [toast, setToast] = useState<{ msg: string; show: boolean }>({ msg: "", show: false });
   const [pending, setPending] = useState<HistoryEntry | null>(null);
-  const [dexCount, setDexCount] = useState(0);
+  /** 当前健康分（0-100，null = 没有任何 history）—— 显示在头部 */
+  const [healthScore, setHealthScore] = useState<number | null>(null);
   const [customFoods, setCustomFoods] = useState<PresetFood[]>([]);
   /** 食物选择 Modal 开关 */
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -125,13 +128,13 @@ export default function HomePage() {
   }, []);
 
   /**
-   * 入站时拉一次 + 订阅本地变更：出卡后自动刷"图鉴 N/49"徽章 + 常用食物。
-   * 之前只在 mount 跑一次，所以出卡解锁新格子但徽章不动 —— 是 UAT 提的中等问题。
+   * 入站时拉一次 + 订阅本地变更：出卡后自动刷健康分徽章 + 常用食物 + 待反馈条。
    */
   useEffect(() => {
     const refresh = () => {
       setPending(findPendingVerdict());
-      setDexCount(getDex().length);
+      const score = computeHealthScore(getHistory());
+      setHealthScore(score?.total ?? null);
       setCustomFoods(getCustomFoods().map(customFoodToPresetShape));
     };
     refresh();
@@ -303,20 +306,22 @@ export default function HomePage() {
     } catch (err) {
       console.warn("[storage] recordCard failed", err);
     }
-    // 这一张卡可能正好让用户集齐一整行/列 → 实时检测 BINGO 并塞进成就墙
+    // 这一张卡可能让用户跨过健康指标阈值 → 检测健康成就并塞进成就墙
+    // （取代旧 BINGO 集卡机制 —— 那个隐式鼓励吃出异常状态，跟健康相反）
     try {
-      const dex = getDex();
+      const history = getHistory();
       const ach = getAchievements();
       const unlockedIds = new Set(ach.map((a) => a.id));
-      const news = diffNewBingos(computeBingo(dex), unlockedIds);
-      for (const n of news) {
+      const matched = detectHealthAchievements(history);
+      for (const rule of matched) {
+        if (unlockedIds.has(rule.id)) continue;
         unlockAchievement({
-          id: n.id,
-          rarity: n.id === "bingo_grand_slam" ? "legendary" : "epic",
-          title: n.title,
-          blurb: n.blurb,
+          id: rule.id,
+          rarity: rule.rarity,
+          title: rule.title,
+          blurb: rule.blurb,
         });
-        showToast(`🎯 ${n.title}`);
+        showToast(rule.title);
       }
     } catch { /* swallow */ }
     const initialRoast = roastRef.current?.latest ?? "";
@@ -351,11 +356,21 @@ export default function HomePage() {
                 <span className="brand-zh">拉啥</span>
               </span>
               <div className="brand-actions">
-                <Link className="icon-btn" href="/dex" aria-label="图鉴">
-                  <BookOpen size={14} aria-hidden />
+                <span
+                  className="icon-btn icon-btn--score"
+                  aria-label={
+                    healthScore === null ? "健康分（暂无）" : `健康分 ${healthScore}`
+                  }
+                  title="健康分：综合最近 7 天 Bristol 集中度、颜色稳定性、纤维水分、记录频次和反馈准确率"
+                >
+                  <Heart size={14} aria-hidden />
                   <span className="icon-btn-label">
-                    图鉴{dexCount > 0 ? ` ${dexCount}/49` : ""}
+                    健康{healthScore === null ? " —" : ` ${healthScore}`}
                   </span>
+                </span>
+                <Link className="icon-btn" href="/dex" aria-label="病例档案">
+                  <BookOpen size={14} aria-hidden />
+                  <span className="icon-btn-label">档案</span>
                 </Link>
                 <Link className="icon-btn" href="/history" aria-label="日记">
                   <HistoryIcon size={14} aria-hidden />

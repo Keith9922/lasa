@@ -203,6 +203,16 @@ img { display: block; max-width: 100%; }
 .icon-btn--icon-only .icon-btn-label { display: none; }
 .icon-btn--icon-only { padding-left: 10px; padding-right: 10px; }
 
+/* 健康分徽章：跟普通 nav 视觉区分（粉桃色背景 + 红 heart）*/
+.icon-btn--score {
+  background: linear-gradient(110deg, rgba(231, 111, 81, 0.16), rgba(245, 200, 66, 0.12));
+  border: 1px solid rgba(231, 111, 81, 0.45);
+  color: var(--ink);
+  cursor: help;
+}
+.icon-btn--score svg { color: var(--hot); }
+.icon-btn--score:hover { background: linear-gradient(110deg, rgba(231, 111, 81, 0.24), rgba(245, 200, 66, 0.18)); }
+
 /*
  * 窄屏紧凑策略：
  *  - 文字标签缩短到 5em 内，超出省略
@@ -2810,35 +2820,58 @@ a:focus-visible,
   color: var(--brand-dim);
 }
 
-/* ===== Dex BINGO ===== */
-.dex-bingo-summary {
-  margin-left: 8px;
-  color: var(--ink-2);
+/* ===== Dex（病例档案）—— 已删除 BINGO 集卡机制 ===== */
+.dex-fact-line {
   font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.6;
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--soft);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
 }
-/* 已完成的列/行表头：金色描边 + 小对勾 */
-.dex-col-head[data-bingo="true"],
-.dex-grid-row[data-bingo="true"] .dex-row-head {
-  background: linear-gradient(135deg, rgba(245, 200, 66, 0.18), rgba(231, 111, 81, 0.12));
-  border: 1px solid var(--gold);
-  border-radius: 6px;
-}
-.dex-bingo-flag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--gold);
+.dex-fact-line strong {
   color: var(--ink);
-  font-size: 9px;
-  font-weight: 900;
-  margin-left: 4px;
+  font-size: 14px;
 }
-/* 已完成的整行：浅金色背景脉动一下 */
-.dex-grid-row[data-bingo="true"] .dex-cell.unlocked {
-  box-shadow: 0 0 0 2px var(--gold);
+
+/* 异常颜色行表头标记 + 顶部就医提示横幅 */
+.dex-row-head--warn {
+  border-left: 2px dashed var(--danger);
+  padding-left: 4px;
+}
+.dex-row-warn-flag {
+  margin-left: 4px;
+  color: var(--danger);
+  font-size: 11px;
+}
+.dex-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: var(--sp-3) 0;
+  padding: 12px 14px;
+  background: rgba(197, 48, 48, 0.06);
+  border: 1px solid rgba(197, 48, 48, 0.3);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--r-md);
+}
+.dex-warning > svg {
+  color: var(--danger);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.dex-warning p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.55;
+}
+.dex-warning-sub {
+  margin-top: 4px !important;
+  font-size: 11px !important;
+  color: var(--ink-3) !important;
 }
 
 /* ===== Monthly Recap (insights 顶部) ===== */

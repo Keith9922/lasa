@@ -205,6 +205,70 @@ export const COLOR_LABELS: Record<Prediction["color"], string> = {
   black: "黑褐",
 };
 
+/**
+ * 健康分 0-100 —— 综合最近 7 天的肠道与饮食信号。
+ *
+ * 维度（满分 100）：
+ *  - Bristol 集中度（Type 3-5 比例）  : 30
+ *  - 颜色稳定性（normal 比例）         : 20
+ *  - 纤维达标日比例（fiber ≥ 20g）     : 20
+ *  - 频次（distinct days / 7）         : 15
+ *  - 校准命中率（accurate + 0.5*partial）: 15（无反馈给中性 0.5）
+ *
+ * 没有任何历史 → 返回 null（前端展示"—"）。
+ * 7 天内没记录 → 返回 0（提醒"先去记几张"）。
+ */
+export type HealthScore = {
+  total: number;
+  factors: {
+    bristol: number;   // 0-30
+    color: number;     // 0-20
+    fiber: number;     // 0-20
+    frequency: number; // 0-15
+    accuracy: number;  // 0-15
+  };
+};
+
+export function computeHealthScore(history: HistoryEntry[]): HealthScore | null {
+  if (history.length === 0) return null;
+  const now = Date.now();
+  const oneDay = 86_400_000;
+  const last7 = history.filter((e) => now - e.timestamp <= 7 * oneDay);
+  if (last7.length === 0) {
+    return {
+      total: 0,
+      factors: { bristol: 0, color: 0, fiber: 0, frequency: 0, accuracy: 0 },
+    };
+  }
+
+  const bristolGood = last7.filter((e) => e.bristol >= 3 && e.bristol <= 5).length / last7.length;
+  const colorGood = last7.filter((e) => e.color === "normal").length / last7.length;
+  const fiberGood = last7.filter((e) => (e.totalFiber ?? 0) >= 20).length / last7.length;
+  const distinctDays = new Set(last7.map((e) => e.date)).size;
+  const frequencyGood = Math.min(1, distinctDays / 7);
+
+  // 全 history 的反馈准确率（不仅 7 天，否则样本太小）
+  let feedbackCount = 0;
+  let weightedHits = 0;
+  for (const e of history) {
+    if (!e.verdict) continue;
+    feedbackCount++;
+    if (e.verdict === "accurate") weightedHits += 1;
+    else if (e.verdict === "partial") weightedHits += 0.5;
+  }
+  const acc = feedbackCount === 0 ? 0.5 : weightedHits / feedbackCount;
+
+  const factors = {
+    bristol: Math.round(bristolGood * 30),
+    color: Math.round(colorGood * 20),
+    fiber: Math.round(fiberGood * 20),
+    frequency: Math.round(frequencyGood * 15),
+    accuracy: Math.round(acc * 15),
+  };
+  const total = Math.min(100, factors.bristol + factors.color + factors.fiber + factors.frequency + factors.accuracy);
+  return { total, factors };
+}
+
 export const COLOR_HEX: Record<Prediction["color"], string> = {
   normal: "#7E5A3F",
   dark: "#2A1610",
