@@ -9,7 +9,7 @@
  */
 
 import { z } from "zod";
-import { chatStream, AIError } from "@/lib/ai";
+import { chatStream, stripThink, AIError } from "@/lib/ai";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -112,6 +112,7 @@ export async function POST(req: Request) {
       };
       try {
         let acc = "";
+        let lastEmitted = "";
         for await (const delta of chatStream({
           messages,
           temperature: tone === "gentle" ? 0.5 : 0.85,
@@ -120,17 +121,24 @@ export async function POST(req: Request) {
           signal: req.signal,
         })) {
           acc += delta;
-          send({ type: "delta", text: acc });
+          // 关键：reasoning 模型先吐 <think> 推理段，再吐答案。前端只想看答案。
+          // 还在 think 中 → stripThink 返回空字符串；think 结束后才开始有内容。
+          const visible = stripThink(acc).trimStart();
+          if (visible && visible !== lastEmitted) {
+            lastEmitted = visible;
+            send({ type: "delta", text: visible });
+          }
         }
         const latencyMs = Date.now() - t0;
-        if (acc.trim().length === 0) {
+        const finalText = stripThink(acc).trim();
+        if (finalText.length === 0) {
           if (strict) {
             send({ type: "done", text: "", source: "error", error: "AI 没说话", latencyMs });
           } else {
             send({ type: "done", text: fallback, source: "template", latencyMs });
           }
         } else {
-          send({ type: "done", text: acc, source: "ai", latencyMs });
+          send({ type: "done", text: finalText, source: "ai", latencyMs });
         }
       } catch (err) {
         const latencyMs = Date.now() - t0;

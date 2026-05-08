@@ -8,7 +8,7 @@
  */
 
 import { z } from "zod";
-import { chatStream, AIError } from "@/lib/ai";
+import { chatStream, stripThink, AIError } from "@/lib/ai";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -93,6 +93,7 @@ export async function POST(req: Request) {
       };
       try {
         let acc = "";
+        let lastEmitted = "";
         for await (const delta of chatStream({
           messages,
           temperature: tone === "gentle" ? 0.6 : 0.95,
@@ -101,17 +102,22 @@ export async function POST(req: Request) {
           signal: req.signal,
         })) {
           acc += delta;
-          send({ type: "delta", text: acc });
+          const visible = stripThink(acc).trimStart();
+          if (visible && visible !== lastEmitted) {
+            lastEmitted = visible;
+            send({ type: "delta", text: visible });
+          }
         }
         const latencyMs = Date.now() - t0;
-        if (acc.trim().length === 0) {
+        const finalText = stripThink(acc).trim();
+        if (finalText.length === 0) {
           if (strict) {
             send({ type: "done", text: "", source: "error", error: "AI 没说话", latencyMs });
           } else {
             send({ type: "done", text: FALLBACK, source: "template", latencyMs });
           }
         } else {
-          send({ type: "done", text: acc, source: "ai", latencyMs });
+          send({ type: "done", text: finalText, source: "ai", latencyMs });
         }
       } catch (err) {
         const latencyMs = Date.now() - t0;

@@ -31,7 +31,7 @@ type ChatOptions = {
  *  - 看到 `</think>` → 返回最后一个 `</think>` 之后的内容（保险起见取 lastIndexOf，应对极端嵌套）
  *  - 没有 think 标签 → 原样返回
  */
-function stripThink(raw: string): string {
+export function stripThink(raw: string): string {
   const closeIdx = raw.lastIndexOf("</think>");
   if (closeIdx !== -1) {
     return raw.slice(closeIdx + "</think>".length);
