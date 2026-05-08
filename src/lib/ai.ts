@@ -23,12 +23,38 @@ type ChatOptions = {
   responseJson?: boolean;
 };
 
-/** AI 响应有时会包一层 ```json 代码块；这里同时处理裸 JSON 和被包裹的情况。 */
+/**
+ * 从 reasoning 模型响应里剥离 `<think>...</think>` 推理块。
+ *
+ * 流式中段策略：
+ *  - 还没看到 `</think>` 但开头是 `<think>` → 返回空串，调用方应当判 null
+ *  - 看到 `</think>` → 返回最后一个 `</think>` 之后的内容（保险起见取 lastIndexOf，应对极端嵌套）
+ *  - 没有 think 标签 → 原样返回
+ */
+function stripThink(raw: string): string {
+  const closeIdx = raw.lastIndexOf("</think>");
+  if (closeIdx !== -1) {
+    return raw.slice(closeIdx + "</think>".length);
+  }
+  if (/^\s*<think>/.test(raw)) return "";
+  return raw;
+}
+
+/**
+ * AI 响应可能：
+ *  - 裸 JSON
+ *  - 用 ```json ... ``` 代码块包起来
+ *  - 前面带 `<think>...</think>` 推理块（M2 这种 reasoning 模型）
+ *
+ * 统一策略：先剥 think 块，再 greedy 抓 `{...}` 大括号。
+ */
 export function extractJson(raw: string): unknown {
+  const body = stripThink(raw);
+  if (!body) return null;
   try {
-    return JSON.parse(raw);
+    return JSON.parse(body);
   } catch {
-    const match = raw.match(/\{[\s\S]*\}/);
+    const match = body.match(/\{[\s\S]*\}/);
     if (!match) return null;
     try {
       return JSON.parse(match[0]);
@@ -151,11 +177,16 @@ export async function* chatStream({
  * 在累加的原始字符串里抠出 `"roast": "..."` 的值，
  * 哪怕字符串还没闭合（即流式中段）。
  *
+ * 关键：reasoning 模型先吐 `<think>` 推理段，再吐答案。
+ * 推理段里可能字面出现 `"roast"`，会污染 regex。所以先剥 think 再 match。
+ *
  * 用于在 generate-roast 流式吐 JSON 时，逐 token 给前端推进度。
  */
 export function extractPartialString(buf: string, key: string): string | null {
+  const body = stripThink(buf);
+  if (!body) return null;
   const re = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)`);
-  const m = buf.match(re);
+  const m = body.match(re);
   if (!m) return null;
   let s = m[1];
   // 把可能截断的尾部 `\` 抹掉，避免把单独的反斜杠当成 escape 头

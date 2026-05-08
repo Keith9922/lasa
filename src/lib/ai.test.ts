@@ -6,7 +6,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractPartialString } from "./ai";
+import { extractPartialString, extractJson } from "./ai";
 
 test("extractPartialString: 完整 JSON 串里抠出值", () => {
   assert.equal(extractPartialString('{"roast": "你今天吃得跟北漂一周没回家一样"}', "roast"), "你今天吃得跟北漂一周没回家一样");
@@ -42,4 +42,25 @@ test("extractPartialString: prefix 还没出现 quote", () => {
   assert.equal(extractPartialString('{"roast":', "roast"), null);
   // 已经开了引号但内容是空
   assert.equal(extractPartialString('{"roast": "', "roast"), "");
+});
+
+test("extractPartialString: 还在 <think> 段里 → 不应抓任何内容", () => {
+  // 模拟 MiniMax-M2 流式中：思考段未闭合，里面出现"roast"字面字符串
+  const buf = '<think>\n用户说我要写"roast"字段，';
+  assert.equal(extractPartialString(buf, "roast"), null);
+});
+
+test("extractPartialString: think 闭合后从答案段抓出 roast", () => {
+  const buf = '<think>\n思考过程，提到"roast"字段</think>\n\n```json\n{"roast": "火锅配啤酒';
+  assert.equal(extractPartialString(buf, "roast"), "火锅配啤酒");
+});
+
+test("extractJson: 完整含 <think> 的 M2 响应能抠出最终 JSON", () => {
+  const raw = '<think>\n这是思考</think>\n\n```json\n{"roast": "痛风套餐"}\n```';
+  const obj = extractJson(raw) as { roast?: string };
+  assert.equal(obj.roast, "痛风套餐");
+});
+
+test("extractJson: 还在 think 中（流式中段） → 返回 null", () => {
+  assert.equal(extractJson("<think>\n思考中..."), null);
 });
