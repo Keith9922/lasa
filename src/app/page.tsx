@@ -17,6 +17,7 @@ import {
   CircleHelp,
   History as HistoryIcon,
   ListChecks,
+  MessageCircle,
   Settings as SettingsIcon,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ import { Toast } from "@/components/toast";
 import { YesterdayPrompt } from "@/components/yesterday-prompt";
 import { UserBadge } from "@/components/user-badge";
 import { FoodPickerModal } from "@/components/food-picker-modal";
+import { AskGutModal } from "@/components/ask-gut-modal";
 
 /**
  * 重组件按需加载：
@@ -95,6 +97,8 @@ export default function HomePage() {
   const [customFoods, setCustomFoods] = useState<PresetFood[]>([]);
   /** 食物选择 Modal 开关 */
   const [pickerOpen, setPickerOpen] = useState(false);
+  /** 「问问肠子」Modal 开关 */
+  const [askOpen, setAskOpen] = useState(false);
   /** AI 解析时 server 估算的整餐水分（毫升）；用于预测引擎水合维度 */
   const [extraWaterMl, setExtraWaterMl] = useState(0);
   const toastTimer = useRef<number | null>(null);
@@ -342,6 +346,16 @@ export default function HomePage() {
                   <BarChart3 size={14} aria-hidden />
                   <span className="icon-btn-label">趋势</span>
                 </Link>
+                <button
+                  className="icon-btn icon-btn--icon-only-mobile"
+                  type="button"
+                  onClick={() => setAskOpen(true)}
+                  aria-label="问问肠子"
+                  title="问问肠子"
+                >
+                  <MessageCircle size={14} aria-hidden />
+                  <span className="icon-btn-label">问问肠子</span>
+                </button>
                 <Link className="icon-btn icon-btn--icon-only" href="/settings" aria-label="设置">
                   <SettingsIcon size={14} aria-hidden />
                 </Link>
@@ -434,6 +448,7 @@ export default function HomePage() {
         onCyclePortion={cyclePortion}
         customFoods={customFoods}
       />
+      <AskGutModal open={askOpen} onClose={() => setAskOpen(false)} />
       <Toast message={toast.msg} show={toast.show} />
     </main>
   );
