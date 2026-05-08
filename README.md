@@ -51,7 +51,7 @@
 - **PWA**：webmanifest + 多尺寸 icon + Apple Web App + 适配 reduced-motion
 - **完整 Error UI**：error.tsx / global-error.tsx / not-found.tsx，配 mascot 插画
 - **a11y**：跳到主内容、全局 :focus-visible 焦点环、Esc 关菜单
-- **59 个单测**：预测引擎 / 健康成就规则 / 健康分 / 流式 JSON / stats 聚合 / 核心模块纯度
+- **54 个单测**：预测引擎 / 健康成就规则 / 健康分 / 流式 JSON / stats 聚合 / 核心模块纯度
 
 ---
 
@@ -81,7 +81,7 @@ src/
     sfx.ts                 # Web Audio + 震动
     cloud-sync.ts          # /api/sync 客户端 adapter
     server/kv.ts           # Upstash REST 抽象
-    *.test.ts              # 单测 59 条
+    *.test.ts              # 单测 54 条
   app/                     # Next.js 路由
     page.tsx               # 主页（描述输入 + 摄入清单 + 开拉）
     dex/                   # 病例档案（中性记录）
@@ -124,7 +124,7 @@ npm run dev                  # http://localhost:3000
 | `npm run build` | 生产构建 |
 | `npm run typecheck` | 仅类型检查 |
 | `npm run lint` | ESLint（flat config + ESLint CLI）|
-| `npm test` | node:test + tsx 跑 59 个单测 |
+| `npm test` | node:test + tsx 跑 54 个单测 |
 | `npm run ci` | 一口气：lint + typecheck + test + build（与 GitHub Actions 同步）|
 
 Node ≥ 20（见 [`.nvmrc`](.nvmrc)）。CI：[`.github/workflows/ci.yml`](.github/workflows/ci.yml) 每次 push / PR 跑全套。

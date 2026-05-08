@@ -372,6 +372,51 @@ img { display: block; max-width: 100%; }
   background: var(--card);
 }
 
+/* 主页 hero 之后的功能入口条 —— 把 4 个数据/功能页平铺
+ *  之前都堆在右上角 brand-actions 里，跟健康分/设置/登录/帮助 混在一起 → 视觉拥挤
+ *  现在 header 只留状态徽章+工具，导航和功能下沉到一条独立的胶囊条
+ */
+.page-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 4px;
+  border-radius: var(--r-pill);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  margin: -4px 0 4px;
+}
+.page-nav-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 6px;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.page-nav-item:hover {
+  background: var(--card);
+  color: var(--ink);
+  border-color: var(--line);
+}
+.page-nav-item:active { transform: scale(0.98); }
+.page-nav-item--feature {
+  color: var(--brand);
+}
+.page-nav-item--feature svg { color: var(--brand); }
+@media (max-width: 420px) {
+  .page-nav { gap: 2px; padding: 3px; }
+  .page-nav-item { font-size: 12px; padding: 7px 4px; gap: 4px; }
+}
+
 /* ===== Generic Modal v2 ===== */
 .modal2-backdrop {
   position: fixed;
@@ -2927,16 +2972,6 @@ a:focus-visible,
   color: var(--ink-2);
   font-style: italic;
 }
-.recap-body--ai p::first-letter {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 900;
-  font-size: 28px;
-  float: left;
-  margin: 4px 8px 0 0;
-  color: var(--brand);
-  line-height: 1;
-}
 .recap-error {
   color: var(--danger) !important;
   font-size: 13px !important;
@@ -2956,6 +2991,40 @@ a:focus-visible,
   margin-left: auto;
   font-size: 10px;
   color: var(--ink-3);
+}
+
+/* 缓存命中且未展开 → 单行胶囊条，不挤占首屏 */
+.recap-collapsed {
+  margin-bottom: var(--sp-4);
+}
+.recap-collapsed-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, var(--card) 0%, var(--soft) 100%);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+.recap-collapsed-btn:hover {
+  border-color: var(--brand);
+}
+.recap-collapsed-label {
+  flex: 1;
+}
+
+/* 展开态 head 右侧：source 徽章 + 收起按钮 */
+.recap-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ===== Ask Gut Modal ===== */

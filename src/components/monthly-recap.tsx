@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { Newspaper, RotateCcw, Share2, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp, Newspaper, RotateCcw, Share2, Sparkles } from "lucide-react";
 import {
   getHistory,
   getSettings,
@@ -47,11 +47,19 @@ export function MonthlyRecap() {
   const period = useMemo(() => currentPeriod(), []);
   const [list, setList] = useState<HistoryEntry[] | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
+  /**
+   * 折叠态：缓存命中时默认折叠，避免 200 字散文压在首屏挤占趋势数据
+   * 用户刚刚生成完 / 主动点开后 → 展开
+   */
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     setList(getHistory());
     const cached = getRecap(period);
-    if (cached) setPhase({ kind: "done", cache: cached });
+    if (cached) {
+      setPhase({ kind: "done", cache: cached });
+      setExpanded(false);
+    }
   }, [period]);
 
   const monthEntries = useMemo(
@@ -142,6 +150,7 @@ export function MonthlyRecap() {
       saveRecap(cache);
     }
     setPhase({ kind: "done", cache });
+    setExpanded(true);
     try {
       logAICall({ endpoint: "generate-roast", source, latencyMs, at: Date.now(), errorMsg });
     } catch { /* swallow */ }
@@ -150,6 +159,7 @@ export function MonthlyRecap() {
   const regenerate = () => {
     clearRecap(period);
     setPhase({ kind: "idle" });
+    setExpanded(true);
     void generate();
   };
 
@@ -165,19 +175,53 @@ export function MonthlyRecap() {
     return null;
   }
 
+  /** 缓存命中且未展开 → 紧凑 CTA 一行（不挤占首屏） */
+  if (phase.kind === "done" && !expanded) {
+    return (
+      <section className="recap-collapsed" aria-label="本月肠道剧本（已折叠）">
+        <button
+          type="button"
+          className="recap-collapsed-btn"
+          onClick={() => setExpanded(true)}
+        >
+          <Newspaper size={14} aria-hidden />
+          <span className="recap-collapsed-label">{periodLabel(period)} · 肠道剧本</span>
+          <span className={`recap-source recap-source--${phase.cache.source}`}>
+            {phase.cache.source === "ai" && "✨ AI 写"}
+            {phase.cache.source === "template" && "📋 兜底"}
+            {phase.cache.source === "error" && "⚠ 失败"}
+          </span>
+          <ChevronDown size={14} aria-hidden />
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section className="recap-card" aria-label="本月肠道剧本">
       <header className="recap-head">
         <h3 className="recap-title">
           <Newspaper size={14} aria-hidden /> {periodLabel(period)} · 肠道剧本
         </h3>
-        {phase.kind === "done" && (
-          <span className={`recap-source recap-source--${phase.cache.source}`}>
-            {phase.cache.source === "ai" && "✨ AI 写"}
-            {phase.cache.source === "template" && "📋 兜底"}
-            {phase.cache.source === "error" && "⚠ 失败"}
-          </span>
-        )}
+        <div className="recap-head-right">
+          {phase.kind === "done" && (
+            <span className={`recap-source recap-source--${phase.cache.source}`}>
+              {phase.cache.source === "ai" && "✨ AI 写"}
+              {phase.cache.source === "template" && "📋 兜底"}
+              {phase.cache.source === "error" && "⚠ 失败"}
+            </span>
+          )}
+          {phase.kind === "done" && (
+            <button
+              type="button"
+              className="btn-ghost recap-mini-btn"
+              onClick={() => setExpanded(false)}
+              aria-label="收起本月剧本"
+            >
+              <ChevronUp size={12} aria-hidden /> 收起
+            </button>
+          )}
+        </div>
       </header>
 
       {phase.kind === "idle" && (

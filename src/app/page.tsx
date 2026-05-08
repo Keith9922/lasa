@@ -368,40 +368,17 @@ export default function HomePage() {
                     健康{healthScore === null ? " —" : ` ${healthScore}`}
                   </span>
                 </span>
-                <Link className="icon-btn" href="/dex" aria-label="病例档案">
-                  <BookOpen size={14} aria-hidden />
-                  <span className="icon-btn-label">档案</span>
-                </Link>
-                <Link className="icon-btn" href="/history" aria-label="日记">
-                  <HistoryIcon size={14} aria-hidden />
-                  <span className="icon-btn-label">日记</span>
-                </Link>
-                <Link className="icon-btn" href="/insights" aria-label="趋势">
-                  <BarChart3 size={14} aria-hidden />
-                  <span className="icon-btn-label">趋势</span>
-                </Link>
-                <button
-                  className="icon-btn icon-btn--icon-only-mobile"
-                  type="button"
-                  onClick={() => setAskOpen(true)}
-                  aria-label="问问肠子"
-                  title="问问肠子"
-                >
-                  <MessageCircle size={14} aria-hidden />
-                  <span className="icon-btn-label">问问肠子</span>
-                </button>
                 <Link className="icon-btn icon-btn--icon-only" href="/settings" aria-label="设置">
                   <SettingsIcon size={14} aria-hidden />
                 </Link>
                 <button
-                  className="icon-btn icon-btn--icon-only-mobile"
+                  className="icon-btn icon-btn--icon-only"
                   type="button"
                   onClick={() => setHelpOpen(true)}
                   aria-label="怎么玩"
                   title="怎么玩"
                 >
                   <CircleHelp size={14} aria-hidden />
-                  <span className="icon-btn-label">怎么玩</span>
                 </button>
                 <UserBadge />
               </div>
@@ -419,6 +396,29 @@ export default function HomePage() {
               <h1 className="hero-title">今天吃了啥？</h1>
               <p className="hero-sub">直接说就行——AI 会帮你拆解、估算热量、预测明天的便便。</p>
             </section>
+
+            <nav className="page-nav" aria-label="数据与功能入口">
+              <Link className="page-nav-item" href="/dex">
+                <BookOpen size={14} aria-hidden />
+                <span>档案</span>
+              </Link>
+              <Link className="page-nav-item" href="/history">
+                <HistoryIcon size={14} aria-hidden />
+                <span>日记</span>
+              </Link>
+              <Link className="page-nav-item" href="/insights">
+                <BarChart3 size={14} aria-hidden />
+                <span>趋势</span>
+              </Link>
+              <button
+                type="button"
+                className="page-nav-item page-nav-item--feature"
+                onClick={() => setAskOpen(true)}
+              >
+                <MessageCircle size={14} aria-hidden />
+                <span>问问肠子</span>
+              </button>
+            </nav>
 
             <DescribePane onAddParsed={addParsed} />
 
