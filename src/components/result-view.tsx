@@ -17,12 +17,14 @@ const isMobileUA = () =>
 type Props = {
   prediction: Prediction;
   roast: string;
+  /** 吐槽来源：ai = 真 AI 写、template = 本地模板兜底、error = AI 失败且 strict 模式 */
+  roastSource: "ai" | "template" | "error";
   achievement: Achievement | null;
   onReset: () => void;
   onToast: (msg: string) => void;
 };
 
-export function ResultView({ prediction, roast, achievement, onReset, onToast }: Props) {
+export function ResultView({ prediction, roast, roastSource, achievement, onReset, onToast }: Props) {
   const [whyOpen, setWhyOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -121,7 +123,7 @@ export function ResultView({ prediction, roast, achievement, onReset, onToast }:
         <h2 className="result-headline">你 明 天 大 概 会 拉 出</h2>
       </div>
 
-      <PoopCard ref={cardRef} prediction={prediction} roast={roast} achievement={achievement} />
+      <PoopCard ref={cardRef} prediction={prediction} roast={roast} roastSource={roastSource} achievement={achievement} />
 
       <NutritionRing prediction={prediction} />
 

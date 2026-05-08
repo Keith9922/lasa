@@ -151,6 +151,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "输入格式不对" }, { status: 400 });
   }
 
+  // 用 header 把"AI 真假 / 用时"暴露给前端 —— 前端把它写进 ai-status 面板
+  const t0 = Date.now();
   try {
     const raw = await chat({
       messages: [
@@ -158,29 +160,38 @@ export async function POST(req: Request) {
         { role: "user", content: parsed.data.text },
       ],
       temperature: 0.1,
-      // M2.7 是 reasoning 模型，<think> 块会消耗大量 token；
-      // 经验值给到 2000，配合 prompt 的"少思考"指令足够
       maxTokens: 2000,
       responseJson: true,
     });
+    const latencyMs = Date.now() - t0;
 
     const obj = extractJson(raw);
     if (!obj) {
-      return NextResponse.json({ error: "AI 返回非 JSON" }, { status: 502 });
+      return NextResponse.json(
+        { error: "AI 返回非 JSON" },
+        { status: 502, headers: { "X-AI-Source": "ai", "X-AI-Latency-Ms": String(latencyMs) } },
+      );
     }
 
     const validated = ParseMealResponseSchema.safeParse(obj);
     if (!validated.success) {
       return NextResponse.json(
         { error: "AI 返回结构不符合预期", details: validated.error.flatten() },
-        { status: 502 },
+        { status: 502, headers: { "X-AI-Source": "ai", "X-AI-Latency-Ms": String(latencyMs) } },
       );
     }
 
-    return NextResponse.json(validated.data);
+    return NextResponse.json(validated.data, {
+      headers: { "X-AI-Source": "ai", "X-AI-Latency-Ms": String(latencyMs) },
+    });
   } catch (err) {
+    const latencyMs = Date.now() - t0;
     const status = err instanceof AIError ? err.status ?? 503 : 503;
     const message = err instanceof Error ? err.message : "未知错误";
-    return NextResponse.json({ error: message }, { status });
+    // parse 不走兜底（结构化输出兜底没意义）；明确报错让前端能呈现
+    return NextResponse.json(
+      { error: message, source: "error", latencyMs },
+      { status, headers: { "X-AI-Source": "error", "X-AI-Latency-Ms": String(latencyMs) } },
+    );
   }
 }

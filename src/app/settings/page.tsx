@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, CloudUpload, CloudDownload, Download, Trash2, Upload, X } from "lucide-react";
+import { ArrowLeft, CloudUpload, CloudDownload, Download, Trash2, Upload, X, Activity } from "lucide-react";
 import {
   getSettings,
   patchSettings,
@@ -16,8 +16,11 @@ import {
   clearAll,
   getCustomFoods,
   removeCustomFood,
+  getAICallLog,
+  clearAICallLog,
   type Settings,
   type CustomFood,
+  type AICallRecord,
 } from "@/lib/storage";
 import {
   pushNow,
@@ -36,11 +39,20 @@ export default function SettingsPage() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({ kind: "idle" });
   const [busy, setBusy] = useState<"push" | "pull" | "wipe" | null>(null);
 
+  const [aiLog, setAiLog] = useState<AICallRecord[]>([]);
+
   useEffect(() => {
     setSettings(getSettings());
     setCustomFoods(getCustomFoods());
+    setAiLog(getAICallLog());
     return onSyncStatus(setSyncStatus);
   }, []);
+
+  const refreshAiLog = () => setAiLog(getAICallLog());
+  const handleClearAiLog = () => {
+    clearAICallLog();
+    setAiLog([]);
+  };
 
   const handlePush = async () => {
     setBusy("push");
@@ -154,6 +166,59 @@ export default function SettingsPage() {
             ]}
             onChange={(v) => update({ tone: v as Settings["tone"] })}
           />
+        </section>
+
+        <section className="settings-group">
+          <h3 className="settings-title">
+            <Activity size={14} aria-hidden style={{ verticalAlign: "-2px", marginRight: 4 }} />
+            AI 状态
+          </h3>
+          <Toggle
+            label="偏好真实 AI"
+            sub="勾上：AI 失败时直接显示错误，不走本地模板兜底（用来验证当前是不是真 AI）"
+            checked={settings.preferRealAi}
+            onChange={(v) => update({ preferRealAi: v })}
+          />
+
+          {aiLog.length === 0 ? (
+            <p className="settings-sub">还没有调用记录。出一张卡或在描述框里让 AI 解析就会有了。</p>
+          ) : (
+            <>
+              <p className="settings-sub">
+                最近 {aiLog.length} 次调用。
+                AI 真实命中：<strong>{aiLog.filter((r) => r.source === "ai").length}</strong>，
+                兜底：<strong>{aiLog.filter((r) => r.source === "template").length}</strong>，
+                失败：<strong>{aiLog.filter((r) => r.source === "error").length}</strong>
+              </p>
+              <ul className="ai-log">
+                {aiLog.slice(0, 10).map((r) => (
+                  <li key={r.at} className={`ai-log-row ai-log-row--${r.source}`}>
+                    <span className="ai-log-source">
+                      {r.source === "ai" && "✨ AI"}
+                      {r.source === "template" && "📋 模板"}
+                      {r.source === "error" && "⚠ 错误"}
+                    </span>
+                    <span className="ai-log-endpoint">{r.endpoint}</span>
+                    <span className="ai-log-latency tabular">{(r.latencyMs / 1000).toFixed(1)}s</span>
+                    <span className="ai-log-time tabular">
+                      {new Date(r.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    {r.errorMsg && (
+                      <span className="ai-log-err" title={r.errorMsg}>{r.errorMsg.slice(0, 40)}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <div className="ai-log-actions">
+                <button className="btn-ghost settings-btn" type="button" onClick={refreshAiLog}>
+                  刷新
+                </button>
+                <button className="btn-ghost settings-btn" type="button" onClick={handleClearAiLog}>
+                  清空日志
+                </button>
+              </div>
+            </>
+          )}
         </section>
 
         <section className="settings-group">

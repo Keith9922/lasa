@@ -65,13 +65,23 @@ import {
   saveCustomFood,
   customFoodToPresetShape,
   onStorageMutation,
+  logAICall,
   type HistoryEntry,
 } from "@/lib/storage";
+
+export type RoastSource = "ai" | "template" | "error";
 
 type Phase =
   | { kind: "input" }
   | { kind: "animating"; prediction: Prediction; achievement: Achievement | null }
-  | { kind: "result"; prediction: Prediction; roast: string; achievement: Achievement | null };
+  | {
+      kind: "result";
+      prediction: Prediction;
+      roast: string;
+      achievement: Achievement | null;
+      /** AI / template / error，用于在卡片上显示 source 标识 */
+      roastSource: RoastSource;
+    };
 
 const PORTION_CYCLE: PortionLevel[] = ["normal", "large", "huge", "small"];
 
@@ -91,11 +101,13 @@ export default function HomePage() {
   /**
    * 当前活跃的吐槽流上下文。流式吐字时持续更新 latest，
    * 动画切到 result 时就用 latest 当初始值，之后每个 delta 同步进 phase。
+   * source 在 done 事件到来时回填，未到来前默认 "ai"（流式生效中）。
    */
   const roastRef = useRef<{
     prediction: Prediction;
     abort: AbortController;
     latest: string;
+    source: RoastSource;
   } | null>(null);
 
   const intakeList = useMemo(() => Object.values(intake), [intake]);
@@ -211,25 +223,43 @@ export default function HomePage() {
     showToast(`已加入 ${foods.length} 项`);
   };
 
-  const startRoastStream = (prediction: Prediction, items: IntakeItem[], tone: "savage" | "gentle") => {
+  const startRoastStream = (prediction: Prediction, items: IntakeItem[], tone: "savage" | "gentle", strict: boolean) => {
     const abort = new AbortController();
-    const ctx = { prediction, abort, latest: "" };
+    const ctx: NonNullable<typeof roastRef.current> = {
+      prediction,
+      abort,
+      latest: "",
+      source: "ai",
+    };
     roastRef.current = ctx;
-    streamRoast(prediction, items, abort.signal, tone, (text) => {
+    streamRoast(prediction, items, abort.signal, tone, strict, (text) => {
       ctx.latest = text;
       setPhase((prev) =>
         prev.kind === "result" && prev.prediction === prediction
           ? { ...prev, roast: text }
           : prev,
       );
-    }).then((final) => {
-      ctx.latest = final;
-      setPhase((prev) =>
-        prev.kind === "result" && prev.prediction === prediction
-          ? { ...prev, roast: final }
-          : prev,
-      );
-    }).catch(() => {/* abort / 网络错误已在 streamRoast 内部兜底 */});
+    })
+      .then((final) => {
+        ctx.latest = final.text;
+        ctx.source = final.source;
+        // 写入 AI 状态日志（settings 页"AI 状态"会读这个）
+        try {
+          logAICall({
+            endpoint: "generate-roast",
+            source: final.source,
+            latencyMs: final.latencyMs,
+            at: Date.now(),
+            errorMsg: final.error,
+          });
+        } catch { /* swallow */ }
+        setPhase((prev) =>
+          prev.kind === "result" && prev.prediction === prediction
+            ? { ...prev, roast: final.text, roastSource: final.source }
+            : prev,
+        );
+      })
+      .catch(() => {/* abort / 网络错误已在 streamRoast 内部兜底 */});
   };
 
   const handleStart = () => {
@@ -242,7 +272,7 @@ export default function HomePage() {
       extraWaterMl,
     });
     const achievement = pickAchievement(prediction, intakeList);
-    startRoastStream(prediction, intakeList, settings.tone);
+    startRoastStream(prediction, intakeList, settings.tone, settings.preferRealAi);
     setPhase({ kind: "animating", prediction, achievement });
   };
 
@@ -267,7 +297,14 @@ export default function HomePage() {
       console.warn("[storage] recordCard failed", err);
     }
     const initialRoast = roastRef.current?.latest ?? "";
-    setPhase({ kind: "result", prediction, roast: initialRoast, achievement });
+    const initialSource: RoastSource = roastRef.current?.source ?? "ai";
+    setPhase({
+      kind: "result",
+      prediction,
+      roast: initialRoast,
+      achievement,
+      roastSource: initialSource,
+    });
   }, [phase, intakeList]);
 
   const handleReset = () => {
@@ -374,6 +411,7 @@ export default function HomePage() {
           <ResultView
             prediction={phase.prediction}
             roast={phase.roast}
+            roastSource={phase.roastSource}
             achievement={phase.achievement}
             onReset={handleReset}
             onToast={showToast}
@@ -403,38 +441,54 @@ export default function HomePage() {
 
 // ---- helpers ----
 
+type RoastResult = {
+  text: string;
+  source: RoastSource;
+  latencyMs: number;
+  error?: string;
+};
+
 /**
  * 流式调用 generate-roast。
  *
  *  - 服务端走 SSE：data: {type:"delta"|"done"|"error", ...}
  *  - 每个 delta 调用 onProgress 推增量；done 后 resolve final
- *  - 任何阶段出错都回退到本地模板池，**始终返回一个非空字符串**
+ *  - 默认 AI 失败回退到本地模板池；strict=true 时不兜底，返回 source="error"
  */
 async function streamRoast(
   prediction: Prediction,
   intake: IntakeItem[],
   signal: AbortSignal,
   tone: "savage" | "gentle",
+  strict: boolean,
   onProgress: (text: string) => void,
-): Promise<string> {
+): Promise<RoastResult> {
+  const t0 = performance.now();
   const summary = intake.map((i) =>
     `${i.name}${i.portion ? `(${PORTION_LABEL[i.portion]})` : `(${i.grams}g)`}`,
   );
   const timeout = AbortSignal.any([signal, AbortSignal.timeout(65_000)]);
   const { warnings: _w, _debug: _d, ...payload } = prediction;
+  const url = `/api/generate-roast?stream=1${strict ? "&strict=1" : ""}`;
+  const fallback = (err?: string): RoastResult => ({
+    text: strict ? "" : pickRoast(prediction),
+    source: strict ? "error" : "template",
+    latencyMs: Math.round(performance.now() - t0),
+    error: err,
+  });
   try {
-    const res = await fetch("/api/generate-roast?stream=1", {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prediction: payload, intakeSummary: summary, tone }),
       signal: timeout,
     });
-    if (!res.ok || !res.body) return pickRoast(prediction);
+    if (!res.ok || !res.body) return fallback(`HTTP ${res.status}`);
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buf = "";
-    let final: string | null = null;
+    let finalEvent: { text: string; source: RoastSource; latencyMs?: number; error?: string } | null = null;
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -449,20 +503,28 @@ async function streamRoast(
         try {
           const obj = JSON.parse(payload) as
             | { type: "delta"; text: string }
-            | { type: "done"; text: string; source: string }
+            | { type: "done"; text: string; source: RoastSource; latencyMs?: number; error?: string }
             | { type: "error"; message: string; code: number };
           if (obj.type === "delta" && obj.text) {
             onProgress(obj.text);
           } else if (obj.type === "done") {
-            final = obj.text;
+            finalEvent = obj;
           }
         } catch {
           // skip malformed
         }
       }
     }
-    return final ?? pickRoast(prediction);
-  } catch {
-    return pickRoast(prediction);
+    if (finalEvent) {
+      return {
+        text: finalEvent.text,
+        source: finalEvent.source,
+        latencyMs: finalEvent.latencyMs ?? Math.round(performance.now() - t0),
+        error: finalEvent.error,
+      };
+    }
+    return fallback("流意外结束");
+  } catch (err) {
+    return fallback(err instanceof Error ? err.message : String(err));
   }
 }

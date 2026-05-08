@@ -107,20 +107,48 @@ export async function POST(req: Request) {
   // 200 太小被 finish_reason=length 截断，3000 够思考完 + 输出 30-50 字 JSON。
   const maxTokens = 3000;
 
-  // 是否走流式：默认走（性能体感好），可通过 ?stream=0 关闭（兜底用）。
-  const wantStream = new URL(req.url).searchParams.get("stream") !== "0";
+  // 查询参数：
+  //  - stream=0 关流式（兜底用）
+  //  - strict=1 偏好真实 AI：AI 失败时直接返回错误，不走本地模板兜底
+  const url = new URL(req.url);
+  const wantStream = url.searchParams.get("stream") !== "0";
+  const strict = url.searchParams.get("strict") === "1";
+
+  const t0 = Date.now();
 
   if (!wantStream) {
     try {
       const raw = await chat({ messages, temperature, maxTokens, responseJson: true });
+      const latencyMs = Date.now() - t0;
       const validated = GenerateRoastResponseSchema.safeParse(extractJson(raw));
       if (validated.success) {
-        return NextResponse.json({ roast: validated.data.roast, source: "ai" });
+        return NextResponse.json(
+          { roast: validated.data.roast, source: "ai", latencyMs },
+          { headers: { "X-AI-Source": "ai", "X-AI-Latency-Ms": String(latencyMs) } },
+        );
       }
-    } catch {
-      /* fall through */
+      if (strict) {
+        return NextResponse.json(
+          { error: "AI 返回结构异常", source: "error", latencyMs },
+          { status: 502, headers: { "X-AI-Source": "error", "X-AI-Latency-Ms": String(latencyMs) } },
+        );
+      }
+    } catch (err) {
+      if (strict) {
+        const status = err instanceof AIError ? err.status ?? 503 : 503;
+        const latencyMs = Date.now() - t0;
+        return NextResponse.json(
+          { error: err instanceof Error ? err.message : "AI 调用失败", source: "error", latencyMs },
+          { status, headers: { "X-AI-Source": "error", "X-AI-Latency-Ms": String(latencyMs) } },
+        );
+      }
+      /* fall through to template */
     }
-    return NextResponse.json({ roast: fallback, source: "template" });
+    const latencyMs = Date.now() - t0;
+    return NextResponse.json(
+      { roast: fallback, source: "template", latencyMs },
+      { headers: { "X-AI-Source": "template", "X-AI-Latency-Ms": String(latencyMs) } },
+    );
   }
 
   // ===== 流式分支 =====
@@ -147,17 +175,25 @@ export async function POST(req: Request) {
             send({ type: "delta", text: partial });
           }
         }
-        // 流结束：用最终 buf 校验，校验失败则吐 fallback
+        const latencyMs = Date.now() - t0;
+        // 流结束：用最终 buf 校验，校验失败则吐 fallback（除非 strict）
         const validated = GenerateRoastResponseSchema.safeParse(extractJson(buf));
         if (validated.success) {
-          send({ type: "done", text: validated.data.roast, source: "ai" });
+          send({ type: "done", text: validated.data.roast, source: "ai", latencyMs });
+        } else if (strict) {
+          send({ type: "done", text: "", source: "error", error: "AI 返回结构异常", latencyMs });
         } else {
-          send({ type: "done", text: fallback, source: "template" });
+          send({ type: "done", text: fallback, source: "template", latencyMs });
         }
       } catch (err) {
         const code = err instanceof AIError ? (err.status ?? 500) : 500;
+        const latencyMs = Date.now() - t0;
         send({ type: "error", message: String(err), code });
-        send({ type: "done", text: fallback, source: "template" });
+        if (strict) {
+          send({ type: "done", text: "", source: "error", error: String(err), latencyMs });
+        } else {
+          send({ type: "done", text: fallback, source: "template", latencyMs });
+        }
       } finally {
         controller.close();
       }
@@ -169,7 +205,6 @@ export async function POST(req: Request) {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
-      // 防止反代缓冲（Nginx / Vercel Edge）
       "X-Accel-Buffering": "no",
     },
   });

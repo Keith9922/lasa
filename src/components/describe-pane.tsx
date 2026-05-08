@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Sparkles } from "lucide-react";
+import { AlertTriangle, Check, Sparkles } from "lucide-react";
 import type { ParsedFood } from "@/lib/schemas";
+import { logAICall } from "@/lib/storage";
 
 type Props = {
   /** AI 解析成功后立即把识别结果加入摄入。父组件负责弹 toast 提示数量。 */
@@ -45,6 +46,7 @@ export function DescribePane({ onAddParsed }: Props) {
     const trimmed = text.trim();
     if (trimmed.length < 2) return;
     setState({ kind: "loading", message: PROGRESS_MESSAGES[0] });
+    const t0 = performance.now();
     try {
       const res = await fetch("/api/parse-meal", {
         method: "POST",
@@ -52,15 +54,33 @@ export function DescribePane({ onAddParsed }: Props) {
         body: JSON.stringify({ text: trimmed }),
         signal: AbortSignal.timeout(40_000),
       });
+      // 服务端把 AI 真实状态塞在 X-AI-* header；写到日志让 settings 页可见
+      const headerLatency = Number(res.headers.get("X-AI-Latency-Ms"));
+      const headerSource =
+        (res.headers.get("X-AI-Source") as "ai" | "template" | "error" | null) ?? "ai";
+      const latencyMs = Number.isFinite(headerLatency) ? headerLatency : Math.round(performance.now() - t0);
+
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         const msg = (data as { error?: string })?.error ?? `HTTP ${res.status}`;
+        try {
+          logAICall({ endpoint: "parse-meal", source: "error", latencyMs, at: Date.now(), errorMsg: msg });
+        } catch { /* swallow */ }
         setState({ kind: "error", message: friendlyError(msg) });
         return;
       }
       const data = await res.json();
       const items: ParsedFood[] = data.items ?? [];
       const totalWaterMl: number | undefined = typeof data.totalWaterMl === "number" ? data.totalWaterMl : undefined;
+      try {
+        logAICall({
+          endpoint: "parse-meal",
+          source: items.length === 0 ? "error" : headerSource,
+          latencyMs,
+          at: Date.now(),
+          errorMsg: items.length === 0 ? "AI 没识别到食物" : undefined,
+        });
+      } catch { /* swallow */ }
       if (items.length === 0) {
         setState({ kind: "error", message: "AI 没识别到具体食物，换个说法再试？" });
         return;
@@ -69,7 +89,16 @@ export function DescribePane({ onAddParsed }: Props) {
       // 不再清空 textarea：让用户能看到"我刚打的字被解析成了这些"
       // 用户继续追加 / 修改时，下面 onChange 自动把 success 切回 idle
       setState({ kind: "success", items });
-    } catch {
+    } catch (err) {
+      try {
+        logAICall({
+          endpoint: "parse-meal",
+          source: "error",
+          latencyMs: Math.round(performance.now() - t0),
+          at: Date.now(),
+          errorMsg: err instanceof Error ? err.message : String(err),
+        });
+      } catch { /* swallow */ }
       setState({ kind: "error", message: "网络好像不太行，过会儿再试。" });
     }
   };
@@ -117,7 +146,10 @@ export function DescribePane({ onAddParsed }: Props) {
       </div>
 
       {state.kind === "error" && (
-        <p className="parse-error" role="alert">{state.message}</p>
+        <div className="parse-error parse-error--strong" role="alert">
+          <AlertTriangle size={14} aria-hidden />
+          <span>{state.message}</span>
+        </div>
       )}
 
       {state.kind === "success" && (

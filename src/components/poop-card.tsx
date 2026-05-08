@@ -9,6 +9,8 @@ import { COLOR_FILTER, COLOR_DOT_VAR } from "@/lib/poop-color";
 type Props = {
   prediction: Prediction;
   roast: string;
+  /** ai / template / error；卡片右下角会显示一个 source 徽章让用户辨识 */
+  roastSource: "ai" | "template" | "error";
   achievement: Achievement | null;
 };
 
@@ -19,8 +21,14 @@ const VOLUME_RANK: Record<Prediction["volume"], number> = {
   huge: 4,
 };
 
+const SOURCE_LABEL: Record<"ai" | "template" | "error", string> = {
+  ai: "✨ AI 写",
+  template: "📋 模板兜底",
+  error: "⚠ AI 失败",
+};
+
 export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
-  { prediction, roast, achievement },
+  { prediction, roast, roastSource, achievement },
   ref,
 ) {
   const date = formatDate(new Date());
@@ -120,8 +128,24 @@ export const PoopCard = forwardRef<HTMLDivElement, Props>(function PoopCard(
         )}
 
         {/* AI 吐槽（roast 还在路上时显示思考中占位）*/}
-        <div className="roast" data-pending={!roast}>
-          <span className="roast-eyebrow">AI 吐槽</span>
+        <div className="roast" data-pending={!roast} data-source={roastSource}>
+          <span className="roast-eyebrow">
+            AI 吐槽
+            {roast && (
+              <span
+                className={`roast-source roast-source--${roastSource}`}
+                title={
+                  roastSource === "ai"
+                    ? "MiniMax-M2 实时生成"
+                    : roastSource === "template"
+                      ? "AI 没在状态，临时用本地模板"
+                      : "AI 调用失败"
+                }
+              >
+                {SOURCE_LABEL[roastSource]}
+              </span>
+            )}
+          </span>
           <p>
             {roast || (
               <>

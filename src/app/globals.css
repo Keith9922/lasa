@@ -771,6 +771,21 @@ img { display: block; max-width: 100%; }
   padding-top: 4px;
 }
 
+/* 强提示版本：包一层 alert 卡 */
+.parse-error--strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: rgba(197, 48, 48, 0.08);
+  border: 1px solid rgba(197, 48, 48, 0.3);
+  color: var(--danger);
+}
+.parse-error--strong svg { flex-shrink: 0; }
+
 .parse-success {
   display: flex;
   gap: 10px;
@@ -1567,7 +1582,38 @@ img { display: block; max-width: 100%; }
   text-transform: uppercase;
   color: var(--hot);
   margin-bottom: 3px;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* AI 来源徽章：让用户一眼分辨"AI 写"vs"模板兜底" */
+.roast-source {
+  font-family: var(--font-display);
+  font-style: normal;
+  font-weight: 600;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  padding: 2px 6px;
+  border-radius: var(--r-pill);
+  cursor: help;
+}
+.roast-source--ai {
+  background: linear-gradient(110deg, rgba(91, 176, 224, 0.18), rgba(184, 148, 74, 0.18));
+  color: var(--brand-dim);
+  border: 1px solid rgba(184, 148, 74, 0.4);
+}
+.roast-source--template {
+  background: var(--soft);
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+}
+.roast-source--error {
+  background: rgba(197, 48, 48, 0.1);
+  color: var(--danger);
+  border: 1px solid rgba(197, 48, 48, 0.3);
 }
 
 .polaroid-stamp {
@@ -2762,6 +2808,57 @@ a:focus-visible,
 }
 .settings-inline-link:hover {
   color: var(--brand-dim);
+}
+
+/* ===== Settings: AI status panel ===== */
+.ai-log {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.ai-log-row {
+  display: grid;
+  grid-template-columns: 56px 96px 50px 50px 1fr;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  padding: 6px 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-2);
+}
+.ai-log-row--ai { border-left: 3px solid var(--brand); }
+.ai-log-row--template { border-left: 3px solid var(--ink-3); }
+.ai-log-row--error { border-left: 3px solid var(--danger); background: rgba(197, 48, 48, 0.04); }
+.ai-log-source { font-weight: 700; }
+.ai-log-endpoint { color: var(--ink-3); font-family: var(--font-mono, monospace); font-size: 10px; }
+.ai-log-latency { color: var(--ink-2); text-align: right; }
+.ai-log-time { color: var(--ink-3); text-align: right; }
+.ai-log-err {
+  color: var(--danger);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10px;
+  grid-column: 1 / -1;
+}
+.ai-log-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+@media (max-width: 480px) {
+  .ai-log-row {
+    grid-template-columns: 50px 1fr 44px;
+  }
+  .ai-log-endpoint { display: none; }
+  .ai-log-time { display: none; }
 }
 
 /* ===== Settings: cloud sync actions ===== */

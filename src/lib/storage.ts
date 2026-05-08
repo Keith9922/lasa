@@ -25,7 +25,10 @@ const KEY = {
   settings: "lasa.settings.v1",
   achievements: "lasa.achievements.v1",
   customFoods: "lasa.customFoods.v1",
+  aiCallLog: "lasa.aiCallLog.v1",
 } as const;
+
+const AI_CALL_LOG_MAX = 20;
 
 const HISTORY_MAX = 90;
 
@@ -115,6 +118,11 @@ export type Settings = {
   haptics: boolean;
   /** 调性：savage 沙雕 / gentle 温柔 */
   tone: "savage" | "gentle";
+  /**
+   * "偏好真实 AI"：勾上后 AI 失败不走本地模板兜底，直接显示错误。
+   * 适合想验证"这是真 AI 还是模板"的用户；默认 off（保持产品可用）。
+   */
+  preferRealAi: boolean;
   /** 用户校准 bias —— 由"准/不准"反馈累积，影响下次预测的微调 */
   calibration: {
     /** 形态偏移：>0 倾向更稀，<0 倾向更硬 */
@@ -130,7 +138,17 @@ const DEFAULT_SETTINGS: Settings = {
   sound: true,
   haptics: true,
   tone: "savage",
+  preferRealAi: false,
   calibration: { bristolBias: 0, volumeBias: 0, samples: 0 },
+};
+
+/** 一次 AI 调用的可观测记录 —— Settings 页"AI 状态"用 */
+export type AICallRecord = {
+  endpoint: "parse-meal" | "generate-roast";
+  source: "ai" | "template" | "error";
+  latencyMs: number;
+  at: number;
+  errorMsg?: string;
 };
 
 // ---------- SSR 安全壳 ----------
@@ -335,6 +353,23 @@ function applyCalibrationFromVerdict(verdict: Verdict): void {
     cal.volumeBias *= 0.9;
   }
   patchSettings({ calibration: cal });
+}
+
+// ---------- AI 调用日志 ----------
+
+export function getAICallLog(): AICallRecord[] {
+  return read<AICallRecord[]>(KEY.aiCallLog, []);
+}
+
+export function logAICall(rec: AICallRecord): AICallRecord[] {
+  const list = getAICallLog();
+  const next = [rec, ...list].slice(0, AI_CALL_LOG_MAX);
+  write(KEY.aiCallLog, next);
+  return next;
+}
+
+export function clearAICallLog(): void {
+  write(KEY.aiCallLog, []);
 }
 
 // ---------- 常用食物 ----------
