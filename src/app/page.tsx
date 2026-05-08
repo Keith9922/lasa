@@ -62,14 +62,17 @@ import {
   recordCard,
   findPendingVerdict,
   getDex,
+  getAchievements,
   getSettings,
   getCustomFoods,
   saveCustomFood,
   customFoodToPresetShape,
+  unlockAchievement,
   onStorageMutation,
   logAICall,
   type HistoryEntry,
 } from "@/lib/storage";
+import { computeBingo, diffNewBingos } from "@/lib/bingo";
 
 export type RoastSource = "ai" | "template" | "error";
 
@@ -300,6 +303,22 @@ export default function HomePage() {
     } catch (err) {
       console.warn("[storage] recordCard failed", err);
     }
+    // 这一张卡可能正好让用户集齐一整行/列 → 实时检测 BINGO 并塞进成就墙
+    try {
+      const dex = getDex();
+      const ach = getAchievements();
+      const unlockedIds = new Set(ach.map((a) => a.id));
+      const news = diffNewBingos(computeBingo(dex), unlockedIds);
+      for (const n of news) {
+        unlockAchievement({
+          id: n.id,
+          rarity: n.id === "bingo_grand_slam" ? "legendary" : "epic",
+          title: n.title,
+          blurb: n.blurb,
+        });
+        showToast(`🎯 ${n.title}`);
+      }
+    } catch { /* swallow */ }
     const initialRoast = roastRef.current?.latest ?? "";
     const initialSource: RoastSource = roastRef.current?.source ?? "ai";
     setPhase({
@@ -309,7 +328,7 @@ export default function HomePage() {
       achievement,
       roastSource: initialSource,
     });
-  }, [phase, intakeList]);
+  }, [phase, intakeList, showToast]);
 
   const handleReset = () => {
     roastRef.current?.abort.abort();

@@ -2810,6 +2810,37 @@ a:focus-visible,
   color: var(--brand-dim);
 }
 
+/* ===== Dex BINGO ===== */
+.dex-bingo-summary {
+  margin-left: 8px;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+/* 已完成的列/行表头：金色描边 + 小对勾 */
+.dex-col-head[data-bingo="true"],
+.dex-grid-row[data-bingo="true"] .dex-row-head {
+  background: linear-gradient(135deg, rgba(245, 200, 66, 0.18), rgba(231, 111, 81, 0.12));
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+}
+.dex-bingo-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 900;
+  margin-left: 4px;
+}
+/* 已完成的整行：浅金色背景脉动一下 */
+.dex-grid-row[data-bingo="true"] .dex-cell.unlocked {
+  box-shadow: 0 0 0 2px var(--gold);
+}
+
 /* ===== Monthly Recap (insights 顶部) ===== */
 .recap-card {
   background: linear-gradient(135deg, var(--card) 0%, var(--soft) 100%);

@@ -12,20 +12,23 @@ import { ArrowLeft } from "lucide-react";
 import {
   getDex,
   getAchievements,
+  unlockAchievement,
   type DexCell,
   type AchievementRecord,
 } from "@/lib/storage";
 import type { Prediction } from "@/lib/predict";
 import { DexSkeleton } from "@/components/skeletons";
+import { computeBingo, diffNewBingos } from "@/lib/bingo";
+import { COLOR_HEX } from "@/lib/stats";
 
-const COLORS: { key: Prediction["color"]; label: string; hex: string }[] = [
-  { key: "normal", label: "正常棕", hex: "#6F4E37" },
-  { key: "yellow", label: "黄褐", hex: "#A0834C" },
-  { key: "dark", label: "深褐", hex: "#3E2723" },
-  { key: "pale", label: "灰白", hex: "#C4B089" },
-  { key: "green", label: "绿褐", hex: "#5A5E2E" },
-  { key: "red", label: "暗红褐", hex: "#5C3025" },
-  { key: "black", label: "黑褐", hex: "#1F1410" },
+const COLORS: { key: Prediction["color"]; label: string }[] = [
+  { key: "normal", label: "正常棕" },
+  { key: "yellow", label: "黄褐" },
+  { key: "dark", label: "深褐" },
+  { key: "pale", label: "灰白" },
+  { key: "green", label: "绿褐" },
+  { key: "red", label: "暗红褐" },
+  { key: "black", label: "黑褐" },
 ];
 
 const BRISTOLS: Prediction["bristol"][] = [1, 2, 3, 4, 5, 6, 7];
@@ -42,8 +45,27 @@ export default function DexPage() {
   const [achievements, setAchievements] = useState<AchievementRecord[] | null>(null);
 
   useEffect(() => {
-    setCells(getDex());
-    setAchievements(getAchievements());
+    const dex = getDex();
+    const ach = getAchievements();
+    setCells(dex);
+
+    // 进入页面时检测：用户上次出卡可能正好通关了行/列，但本地存档没拿到那次成就 ——
+    // 这里"补办"一次，把 BINGO 推到成就墙。
+    const state = computeBingo(dex);
+    const unlockedIds = new Set(ach.map((a) => a.id));
+    const news = diffNewBingos(state, unlockedIds);
+    let nextAch = ach;
+    for (const n of news) {
+      const isGrand = n.id === "bingo_grand_slam";
+      const { list } = unlockAchievement({
+        id: n.id,
+        rarity: isGrand ? "legendary" : "epic",
+        title: n.title,
+        blurb: n.blurb,
+      });
+      nextAch = list;
+    }
+    setAchievements(nextAch);
   }, []);
 
   const unlockedMap = useMemo(() => {
@@ -52,9 +74,14 @@ export default function DexPage() {
     return map;
   }, [cells]);
 
+  const bingoState = useMemo(
+    () => (cells ? computeBingo(cells) : null),
+    [cells],
+  );
+
   const unlockedCount = unlockedMap.size;
 
-  if (cells === null || achievements === null) {
+  if (cells === null || achievements === null || bingoState === null) {
     return <DexSkeleton />;
   }
 
@@ -82,6 +109,9 @@ export default function DexPage() {
             </div>
             <p className="dex-progress-text">
               <strong>{unlockedCount}</strong> / {TOTAL} 已解锁
+              <span className="dex-bingo-summary">
+                · BINGO <strong>{bingoState.completedCount}</strong> / 15
+              </span>
             </p>
           </div>
         </section>
@@ -91,39 +121,49 @@ export default function DexPage() {
           <div className="dex-grid" role="grid" aria-label="便便图鉴">
             <div className="dex-grid-row dex-grid-head" role="row">
               <div role="rowheader" />
-              {BRISTOLS.map((b) => (
-                <div key={b} role="columnheader" className="dex-col-head">{b}</div>
-              ))}
+              {BRISTOLS.map((b) => {
+                const col = bingoState.cols.find((c) => c.key === b);
+                return (
+                  <div key={b} role="columnheader" className="dex-col-head" data-bingo={col?.complete || undefined}>
+                    {b}
+                    {col?.complete && <span className="dex-bingo-flag" aria-label="BINGO 列已通关">✓</span>}
+                  </div>
+                );
+              })}
             </div>
-            {COLORS.map((color) => (
-              <div className="dex-grid-row" key={color.key} role="row">
-                <div role="rowheader" className="dex-row-head" title={color.label}>
-                  <span className="dex-color-swatch" style={{ background: color.hex }} aria-hidden />
-                  <span className="dex-row-head-label">{color.label}</span>
+            {COLORS.map((color) => {
+              const row = bingoState.rows.find((r) => r.key === color.key);
+              return (
+                <div className="dex-grid-row" key={color.key} role="row" data-bingo={row?.complete || undefined}>
+                  <div role="rowheader" className="dex-row-head" title={color.label}>
+                    <span className="dex-color-swatch" style={{ background: COLOR_HEX[color.key] }} aria-hidden />
+                    <span className="dex-row-head-label">{color.label}</span>
+                    {row?.complete && <span className="dex-bingo-flag" aria-label="BINGO 行已通关">✓</span>}
+                  </div>
+                  {BRISTOLS.map((b) => {
+                    const cell = unlockedMap.get(`${b}-${color.key}`);
+                    return (
+                      <div
+                        key={b}
+                        role="gridcell"
+                        className={`dex-cell ${cell ? "unlocked" : "locked"}`}
+                        title={
+                          cell
+                            ? `Type ${b} · ${color.label} · 解锁 ${cell.count} 次`
+                            : `Type ${b} · ${color.label}（未解锁）`
+                        }
+                        style={cell ? { background: COLOR_HEX[color.key] } : undefined}
+                      >
+                        {cell ? <span className="dex-cell-num">{b}</span> : <span className="dex-cell-lock">?</span>}
+                        {cell && cell.count > 1 && (
+                          <span className="dex-cell-count">×{cell.count}</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                {BRISTOLS.map((b) => {
-                  const cell = unlockedMap.get(`${b}-${color.key}`);
-                  return (
-                    <div
-                      key={b}
-                      role="gridcell"
-                      className={`dex-cell ${cell ? "unlocked" : "locked"}`}
-                      title={
-                        cell
-                          ? `Type ${b} · ${color.label} · 解锁 ${cell.count} 次`
-                          : `Type ${b} · ${color.label}（未解锁）`
-                      }
-                      style={cell ? { background: color.hex } : undefined}
-                    >
-                      {cell ? <span className="dex-cell-num">{b}</span> : <span className="dex-cell-lock">?</span>}
-                      {cell && cell.count > 1 && (
-                        <span className="dex-cell-count">×{cell.count}</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
